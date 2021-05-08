@@ -7,7 +7,7 @@ An unofficial implementation of `FederatedAveraging` (or `FedAvg`) algorithm pro
   * 2NN: `TwoNN` class in `models.py`; 199,210 parameters
   * CNN: `CNN` class in `models.py`; 1,663,370 parameters
 * Exactly implement the non-IID data split.
-  * Each client has at least two digits.
+  * Each client has at least two digits in case of using `MNIST` dataset.
 * Implement multiprocessing of _client update_ and _client evaluation_.
 * Support TensorBoard for log tracking.
 
