@@ -1,6 +1,6 @@
 # Federated Averaging (FedAvg) - PyTorch [![arXiv](https://img.shields.io/badge/arXiv-1602.05629-f9f107.svg)](https://arxiv.org/abs/1602.05629)
 
-An unofficial implementation of `FederatedAveraging` (or `FedAvg`) algorithm propposed in the papaer [Communication-Efficient Learning of Deep Networks from Decentralized Data](https://arxiv.org/abs/1602.05629) in PyTorch. (implemented in Python 3.9.2.)
+An unofficial implementation of `FederatedAveraging` (or `FedAvg`) algorithm proposed in the paper [Communication-Efficient Learning of Deep Networks from Decentralized Data](https://arxiv.org/abs/1602.05629) in PyTorch. (implemented in Python 3.9.2.)
 
 ## Implementation points
 * Exactly implement the models ('2NN' and 'CNN' mentioned in the paper) to have the same number of parameters written in the paper.
@@ -60,4 +60,4 @@ Figure 4. MNIST non-IID CNN model accuracy
 ## TODO
 - [ ] Do CIFAR experiment (CIFAR10 dataset) & large-scale LSTM experiment (Shakespeare dataset)
 - [ ] Learning rate scheduling
-- [ ] More expreiments with other hyperparamater settings (e.g., different combinations of B, E, K, and C)
+- [ ] More experiments with other hyperparameter settings (e.g., different combinations of B, E, K, and C)
