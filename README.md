@@ -1,4 +1,4 @@
-# Federated Averaging (FedAvg) - PyTorch [![arXiv](https://img.shields.io/badge/arXiv-1602.05629-f9f107.svg)](https://arxiv.org/abs/1602.05629)
+# Federated Averaging (FedAvg) in PyTorch [![arXiv](https://img.shields.io/badge/arXiv-1602.05629-f9f107.svg)](https://arxiv.org/abs/1602.05629)
 
 An unofficial implementation of `FederatedAveraging` (or `FedAvg`) algorithm proposed in the paper [Communication-Efficient Learning of Deep Networks from Decentralized Data](https://arxiv.org/abs/1602.05629) in PyTorch. (implemented in Python 3.9.2.)
 
@@ -45,17 +45,14 @@ Table 2. Final loss and the least loss
 | 2NN       | 0.09296 (500)           | 0.06956 (107)           | 0.09075 (500)               | 0.08257 (475)               |
 | CNN       | 0.04781 (500)           | 0.02497 (86)            | 0.04533 (500)               | 0.02413 (366)               |
 
-Figure 1. MNIST IID 2NN model accuracy
-![run-Accuracy_ MNIST _TwoNN C_0 1, E_10, B_10, IID_True-tag-Accuracy](https://user-images.githubusercontent.com/33894768/117534144-2d002a80-b02b-11eb-96bb-9f7df1c45e89.png)
+Figure 1. MNIST 2NN model accuracy (IID: top / non-IID: bottom)
 
-Figure 2. MNIST non-IID 2NN model accuracy
 ![run-Accuracy_ MNIST _TwoNN C_0 1, E_10, B_10, IID_False-tag-Accuracy](https://user-images.githubusercontent.com/33894768/117534148-34bfcf00-b02b-11eb-9b2d-f9a33d05242e.png)
 
-Figure 3. MNIST IID CNN model accuracy
+Figure 2. MNIST CNN model accuracy (IID: top / non-IID: bottom)
 ![run-Accuracy_ MNIST _CNN C_0 1, E_10, B_10, IID_True-tag-Accuracy](https://user-images.githubusercontent.com/33894768/117534156-3b4e4680-b02b-11eb-9f27-ce4a10e7cd6b.png)
+![Accuracy](https://user-images.githubusercontent.com/33894768/117542232-c2fb7b80-b052-11eb-90c6-725c94fe0109.png)
 
-Figure 4. MNIST non-IID CNN model accuracy
-![run-Accuracy_ MNIST _CNN C_0 1, E_10, B_10, IID_False-tag-Accuracy](https://user-images.githubusercontent.com/33894768/117534157-3ee1cd80-b02b-11eb-8f0b-8fa5aa45310a.png)
 
 ## TODO
 - [ ] Do CIFAR experiment (CIFAR10 dataset) & large-scale LSTM experiment (Shakespeare dataset)
