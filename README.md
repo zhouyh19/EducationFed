@@ -46,7 +46,7 @@ Table 2. Final loss and the least loss
 | CNN       | 0.04781 (500)           | 0.02497 (86)            | 0.04533 (500)               | 0.02413 (366)               |
 
 Figure 1. MNIST 2NN model accuracy (IID: top / non-IID: bottom)
-
+![iidmnist](https://user-images.githubusercontent.com/33894768/117546686-95b8c880-b066-11eb-817c-e878a338d28e.png)
 ![run-Accuracy_ MNIST _TwoNN C_0 1, E_10, B_10, IID_False-tag-Accuracy](https://user-images.githubusercontent.com/33894768/117534148-34bfcf00-b02b-11eb-9b2d-f9a33d05242e.png)
 
 Figure 2. MNIST CNN model accuracy (IID: top / non-IID: bottom)
