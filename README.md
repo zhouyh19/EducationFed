@@ -58,6 +58,6 @@ Figure 4. MNIST non-IID CNN model accuracy
 ![run-Accuracy_ MNIST _CNN C_0 1, E_10, B_10, IID_False-tag-Accuracy](https://user-images.githubusercontent.com/33894768/117534157-3ee1cd80-b02b-11eb-8f0b-8fa5aa45310a.png)
 
 ## TODO
-[] Do CIFAR experiment (CIFAR10 dataset) & large-scale LSTM experiment (Shakespeare dataset)
-[] Learning rate scheduling
-[] More expreiments with other hyperparamater settings (e.g., different combinations of B, E, K, and C)
+- [ ] Do CIFAR experiment (CIFAR10 dataset) & large-scale LSTM experiment (Shakespeare dataset)
+- [ ] Learning rate scheduling
+- [ ] More expreiments with other hyperparamater settings (e.g., different combinations of B, E, K, and C)
