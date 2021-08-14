@@ -1,6 +1,7 @@
 import os
 import logging
 
+import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.init as init
@@ -91,7 +92,7 @@ class CustomTensorDataset(Dataset):
         x = self.tensors[0][index]
         y = self.tensors[1][index]
         if self.transform:
-            x = self.transform(x.clone().detach().permute(1, 2, 0).numpy())
+            x = self.transform(x.numpy().astype(np.uint8))
         return x, y
 
     def __len__(self):
@@ -102,17 +103,14 @@ def create_datasets(data_path, dataset_name, num_clients, num_shards, iid):
     # get dataset from torchvision.datasets if exists
     if hasattr(datasets, dataset_name):
         # set transformation differently per dataset
-        if dataset_name in ["CIFAR10", "ImageNet"]:
+        if dataset_name in ["CIFAR10"]:
             transform = transforms.Compose(
                 [
                     transforms.ToTensor(),
-                    transforms.Normalize(
-                        mean=[0.485, 0.456, 0.406],
-                        std=[0.229, 0.224, 0.225]
-                        )
+                    transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
                 ]
             )
-        elif dataset_name in ["MNIST", "EMNIST"]:
+        elif dataset_name in ["MNIST"]:
             transform = transforms.ToTensor()
         
         # prepare raw training & test datasets
@@ -120,6 +118,7 @@ def create_datasets(data_path, dataset_name, num_clients, num_shards, iid):
             root=data_path,
             train=True,
             download=True,
+            transform=transform
         )
         test_dataset = datasets.__dict__[dataset_name](
             root=data_path,
@@ -135,22 +134,28 @@ def create_datasets(data_path, dataset_name, num_clients, num_shards, iid):
 
     # unsqueeze channel dimension for grayscale image datasets
     if training_dataset.data.ndim == 3:
-        training_dataset.data.unsqueeze_(1)
-    num_categories = torch.unique(training_dataset.targets).size(0)
-
+        training_dataset.data.unsqueeze_(1)    
+    num_categories = np.unique(training_dataset.targets).shape[0]
+    
+    if "ndarray" not in str(type(training_dataset.data)):
+        training_dataset.data = np.asarray(training_dataset.data)
+    if "list" not in str(type(training_dataset.targets)):
+        training_dataset.targets = training_dataset.targets.tolist()
+    
     # split dataset according to iid flag
     if iid:
         # shuffle data
         shuffled_indices = torch.randperm(len(training_dataset))
+        print(type(training_dataset.data), type(training_dataset.targets))
         training_inputs = training_dataset.data[shuffled_indices]
-        training_labels = training_dataset.targets[shuffled_indices]
+        training_labels = torch.Tensor(training_dataset.targets)[shuffled_indices]
 
         # partition data into num_clients
         split_size = len(training_dataset) // num_clients
         split_datasets = list(
             zip(
-                torch.split(training_inputs, split_size),
-                torch.split(training_labels, split_size)
+                torch.split(torch.Tensor(training_inputs), split_size),
+                torch.split(torch.Tensor(training_labels), split_size)
             )
         )
 
@@ -161,16 +166,16 @@ def create_datasets(data_path, dataset_name, num_clients, num_shards, iid):
             ]
     else:
         # sort data by labels
-        sorted_indices = torch.argsort(training_dataset.targets)
+        sorted_indices = torch.argsort(torch.Tensor(training_dataset.targets))
         training_inputs = training_dataset.data[sorted_indices]
-        training_labels = training_dataset.targets[sorted_indices]
+        training_labels = torch.Tensor(training_dataset.targets)[sorted_indices]
 
         # partition data into shards first
         shard_size = len(training_dataset) // num_shards #300
         split_datasets = list(
             zip(
-                torch.split(training_inputs, shard_size),
-                torch.split(training_labels, shard_size)
+                torch.split(torch.Tensor(training_inputs), shard_size),
+                torch.split(torch.Tensor(training_labels), shard_size)
             )
         )
 
