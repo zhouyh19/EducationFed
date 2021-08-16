@@ -133,8 +133,8 @@ def create_datasets(data_path, dataset_name, num_clients, num_shards, iid):
         raise AttributeError(error_message)
 
     # unsqueeze channel dimension for grayscale image datasets
-    if training_dataset.data.ndim == 3:
-        training_dataset.data.unsqueeze_(1)    
+    if training_dataset.data.ndim == 3: # convert to NxHxW -> NxHxWx1
+        training_dataset.data.unsqueeze_(3)
     num_categories = np.unique(training_dataset.targets).shape[0]
     
     if "ndarray" not in str(type(training_dataset.data)):
@@ -146,7 +146,6 @@ def create_datasets(data_path, dataset_name, num_clients, num_shards, iid):
     if iid:
         # shuffle data
         shuffled_indices = torch.randperm(len(training_dataset))
-        print(type(training_dataset.data), type(training_dataset.targets))
         training_inputs = training_dataset.data[shuffled_indices]
         training_labels = torch.Tensor(training_dataset.targets)[shuffled_indices]
 
@@ -196,5 +195,5 @@ def create_datasets(data_path, dataset_name, num_clients, num_shards, iid):
             ConcatDataset(shard_sorted[i:i + shards_per_clients]) 
             for i in range(0, len(shard_sorted), shards_per_clients)
             ]
-        
+
     return local_datasets, test_dataset
