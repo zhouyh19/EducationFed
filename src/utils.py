@@ -100,27 +100,28 @@ class CustomTensorDataset(Dataset):
 
 def create_datasets(data_path, dataset_name, num_clients, num_shards, iid):
     """Split the whole dataset in IID or non-IID manner for distributing to clients."""
+    dataset_name = dataset_name.upper()
     # get dataset from torchvision.datasets if exists
-    if hasattr(datasets, dataset_name):
+    if hasattr(torchvision.datasets, dataset_name):
         # set transformation differently per dataset
         if dataset_name in ["CIFAR10"]:
-            transform = transforms.Compose(
+            transform = torchvision.transforms.Compose(
                 [
-                    transforms.ToTensor(),
-                    transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
+                    torchvision.transforms.ToTensor(),
+                    torchvision.transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
                 ]
             )
         elif dataset_name in ["MNIST"]:
-            transform = transforms.ToTensor()
+            transform = torchvision.transforms.ToTensor()
         
         # prepare raw training & test datasets
-        training_dataset = datasets.__dict__[dataset_name](
+        training_dataset = torchvision.datasets.__dict__[dataset_name](
             root=data_path,
             train=True,
             download=True,
             transform=transform
         )
-        test_dataset = datasets.__dict__[dataset_name](
+        test_dataset = torchvision.datasets.__dict__[dataset_name](
             root=data_path,
             train=False,
             download=True,
@@ -128,8 +129,7 @@ def create_datasets(data_path, dataset_name, num_clients, num_shards, iid):
         )
     else:
         # dataset not found exception
-        error_message = f"...dataset \"{dataset_name}\" is not supported or cannot be found!"
-        logging.error(error_message)
+        error_message = f"...dataset \"{dataset_name}\" is not supported or cannot be found in TorchVision Datasets!"
         raise AttributeError(error_message)
 
     # unsqueeze channel dimension for grayscale image datasets
@@ -171,29 +171,26 @@ def create_datasets(data_path, dataset_name, num_clients, num_shards, iid):
 
         # partition data into shards first
         shard_size = len(training_dataset) // num_shards #300
-        split_datasets = list(
-            zip(
-                torch.split(torch.Tensor(training_inputs), shard_size),
-                torch.split(torch.Tensor(training_labels), shard_size)
-            )
-        )
-
-        # store temoporary dataset object for storing shards into a list
-        shard_datasets = [
-            CustomTensorDataset(local_dataset, transform=transform)
-            for local_dataset in split_datasets]
+        shard_inputs = list(torch.split(torch.Tensor(training_inputs), shard_size))
+        shard_labels = list(torch.split(torch.Tensor(training_labels), shard_size))
 
         # sort the list to conveniently assign samples to each clients from at least two classes
-        shard_sorted = []
+        shard_inputs_sorted, shard_labels_sorted = [], []
         for i in range(num_shards // num_categories):
             for j in range(0, ((num_shards // num_categories) * num_categories), (num_shards // num_categories)):
-                shard_sorted.append(shard_datasets[i + j])
-
+                shard_inputs_sorted.append(shard_inputs[i + j])
+                shard_labels_sorted.append(shard_labels[i + j])
+                
         # finalize local datasets by assigning shards to each client
         shards_per_clients = num_shards // num_clients
         local_datasets = [
-            ConcatDataset(shard_sorted[i:i + shards_per_clients]) 
-            for i in range(0, len(shard_sorted), shards_per_clients)
-            ]
-
+            CustomTensorDataset(
+                (
+                    torch.cat(shard_inputs_sorted[i:i + shards_per_clients]),
+                    torch.cat(shard_labels_sorted[i:i + shards_per_clients]).long()
+                ),
+                transform=transform
+            ) 
+            for i in range(0, len(shard_inputs_sorted), shards_per_clients)
+        ]
     return local_datasets, test_dataset
