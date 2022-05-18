@@ -1,3 +1,4 @@
+* NOTE: This repository will be updated to *ver 2.0* at least in August, 2022.
 # Federated Averaging (FedAvg) in PyTorch [![arXiv](https://img.shields.io/badge/arXiv-1602.05629-f9f107.svg)](https://arxiv.org/abs/1602.05629)
 
 An unofficial implementation of `FederatedAveraging` (or `FedAvg`) algorithm proposed in the paper [Communication-Efficient Learning of Deep Networks from Decentralized Data](https://arxiv.org/abs/1602.05629) in PyTorch. (implemented in Python 3.9.2.)
