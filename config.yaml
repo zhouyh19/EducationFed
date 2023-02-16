@@ -1,7 +1,7 @@
 global_config:
   seed: 5959
   device: "cuda"
-  is_mp: True
+  is_mp: False
 ---
 data_config:
   data_path: "./data/"
@@ -11,21 +11,22 @@ data_config:
 ---
 fed_config:
   C: 0.1
-  K: 100
+  K: 2
   R: 500
-  E: 10
-  B: 10
+  E: 1
+  B: 2
   criterion: torch.nn.CrossEntropyLoss
   optimizer: torch.optim.SGD
 ---
 optim_config:
-  lr: 0.01
+  lr: 5.0e-7
   momentum: 0.9
+  weight_decay: 1.0e-4
 ---
 init_config:
   init_type: "xavier"
   init_gain: 1.0
-  gpu_ids: [0, 1, 2]
+  gpu_ids: [0]
 ---
 model_config: 
   #name: TwoNN

@@ -1,0 +1,16 @@
+[INFO](2023/01/21/ 11:00:52 AM) 
+[WELCOME] Unfolding configurations...!
+[INFO](2023/01/21/ 11:00:52 AM) {'global_config': {'seed': 5959, 'device': 'cuda', 'is_mp': False}}
+[INFO](2023/01/21/ 11:00:52 AM) {'data_config': {'data_path': './data/', 'dataset_name': 'MNIST', 'num_shards': 200, 'iid': False}}
+[INFO](2023/01/21/ 11:00:52 AM) {'fed_config': {'C': 0.1, 'K': 1, 'R': 500, 'E': 10, 'B': 10, 'criterion': 'torch.nn.CrossEntropyLoss', 'optimizer': 'torch.optim.SGD'}}
+[INFO](2023/01/21/ 11:00:52 AM) {'optim_config': {'lr': 0.01, 'momentum': 0.9}}
+[INFO](2023/01/21/ 11:00:52 AM) {'init_config': {'init_type': 'xavier', 'init_gain': 1.0, 'gpu_ids': [0]}}
+[INFO](2023/01/21/ 11:00:52 AM) {'model_config': {'name': 'CNN', 'in_channels': 1, 'hidden_channels': 32, 'num_hiddens': 512, 'num_classes': 10}}
+[INFO](2023/01/21/ 11:00:52 AM) {'log_config': {'log_path': './log/2023-01-21_11:00:48', 'log_name': 'FL.log', 'tb_port': 5252, 'tb_host': '0.0.0.0'}}
+[INFO](2023/01/21/ 11:00:54 AM) [Round: 0000] ...successfully initialized model (# parameters: 28388074)!
+[INFO](2023/01/21/ 11:00:58 AM) [Round: 0000] ...successfully created all 1 clients!
+[INFO](2023/01/21/ 11:00:58 AM) [Round: 0000] ...successfully finished setup of all 1 clients!
+[INFO](2023/01/21/ 11:00:58 AM) [Round: 0000] ...successfully transmitted models to all 1 clients!
+[INFO](2023/01/21/ 11:00:58 AM) [Round: 0001] Select clients...!
+[INFO](2023/01/21/ 11:00:59 AM) [Round: 0001] ...successfully transmitted models to 1 selected clients!
+[INFO](2023/01/21/ 11:00:59 AM) [Round: 0001] Start updating selected 1 clients...!

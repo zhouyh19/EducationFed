@@ -1,0 +1,25 @@
+[INFO](2023/01/20/ 10:55:31 PM) 
+[WELCOME] Unfolding configurations...!
+[INFO](2023/01/20/ 10:55:31 PM) {'global_config': {'seed': 5959, 'device': 'cuda', 'is_mp': True}}
+[INFO](2023/01/20/ 10:55:31 PM) {'data_config': {'data_path': './data/', 'dataset_name': 'MNIST', 'num_shards': 200, 'iid': False}}
+[INFO](2023/01/20/ 10:55:31 PM) {'fed_config': {'C': 0.1, 'K': 100, 'R': 500, 'E': 10, 'B': 10, 'criterion': 'torch.nn.CrossEntropyLoss', 'optimizer': 'torch.optim.SGD'}}
+[INFO](2023/01/20/ 10:55:31 PM) {'optim_config': {'lr': 0.01, 'momentum': 0.9}}
+[INFO](2023/01/20/ 10:55:31 PM) {'init_config': {'init_type': 'xavier', 'init_gain': 1.0, 'gpu_ids': [0]}}
+[INFO](2023/01/20/ 10:55:31 PM) {'model_config': {'name': 'CNN', 'in_channels': 1, 'hidden_channels': 32, 'num_hiddens': 512, 'num_classes': 10}}
+[INFO](2023/01/20/ 10:55:31 PM) {'log_config': {'log_path': './log/2023-01-20_22:55:28', 'log_name': 'FL.log', 'tb_port': 5252, 'tb_host': '0.0.0.0'}}
+[INFO](2023/01/20/ 10:55:32 PM) [Round: 0000] ...successfully initialized model (# parameters: 1662752)!
+[INFO](2023/01/20/ 10:55:32 PM) [Round: 0000] ...successfully created all 100 clients!
+[INFO](2023/01/20/ 10:55:32 PM) [Round: 0000] ...successfully finished setup of all 100 clients!
+[INFO](2023/01/20/ 10:55:32 PM) [Round: 0000] ...successfully transmitted models to all 100 clients!
+[INFO](2023/01/20/ 10:55:32 PM) [Round: 0001] Select clients...!
+[INFO](2023/01/20/ 10:55:32 PM) [Round: 0001] ...successfully transmitted models to 10 selected clients!
+[INFO](2023/01/20/ 10:55:32 PM) [Round: 0001] Start updating selected client 0006...!
+[INFO](2023/01/20/ 10:55:32 PM) [Round: 0001] Start updating selected client 0009...!
+[INFO](2023/01/20/ 10:55:32 PM) [Round: 0001] Start updating selected client 0033...!
+[INFO](2023/01/20/ 10:55:33 PM) [Round: 0001] Start updating selected client 0013...!
+[INFO](2023/01/20/ 10:55:33 PM) [Round: 0001] Start updating selected client 0048...!
+[INFO](2023/01/20/ 10:55:33 PM) [Round: 0001] Start updating selected client 0067...!
+[INFO](2023/01/20/ 10:55:33 PM) [Round: 0001] Start updating selected client 0091...!
+[INFO](2023/01/20/ 10:55:33 PM) [Round: 0001] Start updating selected client 0097...!
+[INFO](2023/01/20/ 10:55:33 PM) [Round: 0001] Start updating selected client 0088...!
+[INFO](2023/01/20/ 10:55:33 PM) [Round: 0001] Start updating selected client 0036...!

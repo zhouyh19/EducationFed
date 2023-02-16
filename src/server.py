@@ -15,6 +15,9 @@ from .models import *
 from .utils import *
 from .client import Client
 
+from .config import *
+from .dataset import *
+
 logger = logging.getLogger(__name__)
 
 
@@ -52,7 +55,9 @@ class Server(object):
         self._round = 0
         self.writer = writer
 
-        self.model = eval(model_config["name"])(**model_config)
+        #self.model = eval(model_config["name"])(**model_config)
+        
+        self.cfg=Config()
         
         self.seed = global_config["seed"]
         self.device = global_config["device"]
@@ -63,8 +68,6 @@ class Server(object):
         self.num_shards = data_config["num_shards"]
         self.iid = data_config["iid"]
 
-        self.init_config = init_config
-
         self.fraction = fed_config["C"]
         self.num_clients = fed_config["K"]
         self.num_rounds = fed_config["R"]
@@ -74,25 +77,33 @@ class Server(object):
         self.criterion = fed_config["criterion"]
         self.optimizer = fed_config["optimizer"]
         self.optim_config = optim_config
+
+        
+        self.model=Dynamic_collective(self.cfg)
         
     def setup(self, **init_kwargs):
         """Set up all configuration for federated learning."""
         # valid only before the very first round
         assert self._round == 0
+        #print("setup server model device:",next(self.model.parameters()).device)
 
         # initialize weights of the model
         torch.manual_seed(self.seed)
-        init_net(self.model, **self.init_config)
+        init_net(self.model, self.cfg.init_type, self.cfg.init_gain, self.cfg.gpu_ids)
 
         message = f"[Round: {str(self._round).zfill(4)}] ...successfully initialized model (# parameters: {str(sum(p.numel() for p in self.model.parameters()))})!"
         print(message); logging.info(message)
         del message; gc.collect()
 
         # split local dataset for each client
-        local_datasets, test_dataset = create_datasets(self.data_path, self.dataset_name, self.num_clients, self.num_shards, self.iid)
+        #local_datasets, test_dataset = create_datasets(self.data_path, self.dataset_name, self.num_clients, self.num_shards, self.iid)
+
+        local_datasets, test_dataset = return_dataset(self.cfg,self.num_clients)
         
         # assign dataset to each client
+        
         self.clients = self.create_clients(local_datasets)
+        #print(" create_clients server model device:",next(self.model.parameters()).device)
 
         # prepare hold-out dataset for evaluation
         self.data = test_dataset
@@ -105,14 +116,16 @@ class Server(object):
             optimizer=self.optimizer, optim_config=self.optim_config
             )
         
+        print("setup complete")
         # send the model skeleton to all clients
+        print("server model device:",next(self.model.parameters()).device)
         self.transmit_model()
         
     def create_clients(self, local_datasets):
         """Initialize each Client instance."""
         clients = []
         for k, dataset in tqdm(enumerate(local_datasets), leave=False):
-            client = Client(client_id=k, local_data=dataset, device=self.device)
+            client = Client(client_id=k, local_data=dataset, device=self.device,cfg=self.cfg)
             clients.append(client)
 
         message = f"[Round: {str(self._round).zfill(4)}] ...successfully created all {str(self.num_clients)} clients!"
@@ -171,6 +184,7 @@ class Server(object):
         print(message); logging.info(message)
         del message; gc.collect()
 
+        
         selected_total_size = 0
         for idx in tqdm(sampled_client_indices, leave=False):
             self.clients[idx].client_update()
@@ -274,22 +288,52 @@ class Server(object):
         self.model.eval()
         self.model.to(self.device)
 
+        activities_meter=AverageMeter()
+        loss_meter=AverageMeter()
+        epoch_timer=Timer()
+
         test_loss, correct = 0, 0
         with torch.no_grad():
-            for data, labels in self.dataloader:
-                data, labels = data.float().to(self.device), labels.long().to(self.device)
-                outputs = self.model(data)
-                test_loss += eval(self.criterion)()(outputs, labels).item()
+            for batch_data in self.dataloader:
+                # prepare batch data
+                batch_data=[b.to(device=self.device) for b in batch_data]
+                batch_size=batch_data[0].shape[0]
+                num_frames=batch_data[0].shape[1]
                 
-                predicted = outputs.argmax(dim=1, keepdim=True)
-                correct += predicted.eq(labels.view_as(predicted)).sum().item()
+                #actions_in=batch_data[2].reshape((batch_size,num_frames,cfg.num_boxes))
+                activities_in=batch_data[2].reshape((batch_size,num_frames))
+                bboxes_num=batch_data[3].reshape(batch_size,num_frames)
+
+                # forward
+                activities_scores = self.model((batch_data[0], batch_data[1], batch_data[3]))['activities']
+                
+                activities_in=activities_in[:,0].reshape(batch_size,)
+
+                # Predict activities
+                activities_loss=F.cross_entropy(activities_scores,activities_in)
+                activities_labels=torch.argmax(activities_scores,dim=1)  #B,
+                activities_correct=torch.sum(torch.eq(activities_labels.int(),activities_in.int()).float())
+                activities_accuracy=activities_correct.item()/activities_scores.shape[0]
+                activities_meter.update(activities_accuracy, activities_scores.shape[0])
+                #activities_conf.add(activities_labels, activities_in)
+
+                # Total loss
+                total_loss=activities_loss # + cfg.actions_loss_weight*actions_loss
+                loss_meter.update(total_loss.item(), batch_size)
                 
                 if self.device == "cuda": torch.cuda.empty_cache()
         self.model.to("cpu")
 
-        test_loss = test_loss / len(self.dataloader)
-        test_accuracy = correct / len(self.data)
-        return test_loss, test_accuracy
+        test_info={
+            'time':epoch_timer.timeit(),
+            'loss':loss_meter.avg,
+            'activities_acc':activities_meter.avg*100,
+            #'activities_MPCA': MPCA(activities_conf.value()),
+        } #'actions_acc':actions_meter.avg*100
+
+        print("global test")
+        print(test_info)
+        return loss_meter.avg,activities_meter.avg*100
 
     def fit(self):
         """Execute the whole process of the federated learning."""
@@ -305,19 +349,19 @@ class Server(object):
 
             self.writer.add_scalars(
                 'Loss',
-                {f"[{self.dataset_name}]_{self.model.name} C_{self.fraction}, E_{self.local_epochs}, B_{self.batch_size}, IID_{self.iid}": test_loss},
+                {f"[{self.dataset_name}]_C_{self.fraction}, E_{self.local_epochs}, B_{self.batch_size}, IID_{self.iid}": test_loss},
                 self._round
                 )
             self.writer.add_scalars(
                 'Accuracy', 
-                {f"[{self.dataset_name}]_{self.model.name} C_{self.fraction}, E_{self.local_epochs}, B_{self.batch_size}, IID_{self.iid}": test_accuracy},
+                {f"[{self.dataset_name}]_C_{self.fraction}, E_{self.local_epochs}, B_{self.batch_size}, IID_{self.iid}": test_accuracy},
                 self._round
                 )
 
             message = f"[Round: {str(self._round).zfill(4)}] Evaluate global model's performance...!\
                 \n\t[Server] ...finished evaluation!\
                 \n\t=> Loss: {test_loss:.4f}\
-                \n\t=> Accuracy: {100. * test_accuracy:.2f}%\n"            
+                \n\t=> Accuracy: { test_accuracy:.2f}%\n"            
             print(message); logging.info(message)
             del message; gc.collect()
         self.transmit_model()
