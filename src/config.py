@@ -11,7 +11,7 @@ class Config(object):
         
         # Dataset
         self.dataset_name='education'
-        self.data_path='/data/processed'
+        self.data_path='../processed'
         
         # Backbone 
         self.crop_size = 5, 5  #crop size of roi align
@@ -88,7 +88,7 @@ class Config(object):
         self.out_size = 15, 22
         self.emb_features = 512
 
-        self.num_boxes = 38
+        self.num_boxes = 40
         self.num_actions = 5
         self.num_activities = 5
         self.num_frames = 10
@@ -98,6 +98,7 @@ class Config(object):
         self.test_batch_size = 8
         self.test_interval_epoch = 1
         self.train_learning_rate = 5e-5
+        self.momentum = 0.9
         self.train_dropout_prob = 0.5
         self.weight_decay = 1e-4
         self.lr_plan = {}

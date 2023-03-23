@@ -61,7 +61,7 @@ class Client(object):
         self.model.train()
         self.model.to(self.device)
 
-
+        print('lr:',self.cfg.train_learning_rate)
         optimizer=optim.Adam(filter(lambda p: p.requires_grad, self.model.parameters()), \
             lr=self.cfg.train_learning_rate,weight_decay=self.cfg.weight_decay)
 
@@ -77,7 +77,7 @@ class Client(object):
                 # actions_scores,activities_scores=model((batch_data[0],batch_data[1],batch_data[4]))
 
                 #print(batch_data[0].shape,batch_data[1].dtype,batch_data[3].dtype)
-                activities_scores = self.model((batch_data[0], batch_data[1], batch_data[3]))["activities"]
+                activities_scores = self.model((batch_data[0], batch_data[1], batch_data[3],batch_data[4],batch_data[5]))["activities"]
                 activities_in = batch_data[2].reshape((batch_size,num_frames))
                 bboxes_num = batch_data[3].reshape(batch_size,num_frames)
                     
@@ -87,6 +87,7 @@ class Client(object):
                 activities_loss=F.cross_entropy(activities_scores,activities_in)
                 activities_labels=torch.argmax(activities_scores,dim=1)  #B*T,
                 activities_correct=torch.sum(torch.eq(activities_labels.int(),activities_in.int()).float())
+                #print(activities_correct)
                 activities_accuracy=activities_correct.item()/activities_scores.shape[0]
                 #activities_meter.update(activities_accuracy, activities_scores.shape[0])
                 #activities_conf.add(activities_labels, activities_in)
@@ -126,7 +127,7 @@ class Client(object):
                 bboxes_num=batch_data[3].reshape(batch_size,num_frames)
 
                 # forward
-                activities_scores = self.model((batch_data[0], batch_data[1], batch_data[3]))['activities']
+                activities_scores = self.model((batch_data[0], batch_data[1], batch_data[3],batch_data[4],batch_data[5]))['activities']
                 
                 activities_in=activities_in[:,0].reshape(batch_size,)
 

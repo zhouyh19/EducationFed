@@ -4,14 +4,14 @@ global_config:
   is_mp: False
 ---
 data_config:
-  data_path: "./data/"
+  data_path: "../processed"
   dataset_name: "MNIST"
   num_shards: 200
   iid: False
 ---
 fed_config:
   C: 0.1
-  K: 2
+  K: 1
   R: 500
   E: 1
   B: 2

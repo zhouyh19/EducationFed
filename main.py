@@ -16,6 +16,8 @@ from src.utils import launch_tensor_board
 
 
 if __name__ == "__main__":
+    torch.backends.cudnn.enable =True
+    torch.backends.cudnn.benchmark = True
     # read configuration file
     with open('./config.yaml') as c:
         configs = list(yaml.load_all(c, Loader=yaml.FullLoader))

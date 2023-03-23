@@ -7,10 +7,20 @@ import random,os
 def return_dataset(cfg,num_clients):
 
     img_path='/data/extracted'
-
+    print(cfg)
     seqs=os.listdir(cfg.data_path)
     train_seqs=[]
-    test_seqs=random.sample(seqs,max(len(seqs)//5,1))
+
+    '''test_seqs=random.sample(seqs,max(len(seqs)//5,1))
+    with open('test_samples.txt','w') as f: 
+        for seq in test_seqs:
+            f.write(seq+'\n')'''
+    
+    with open('test_samples.txt','r') as f: 
+        test_seqs=f.readlines()
+    test_seqs=[seq.replace('\n','') for seq in test_seqs]
+    print(test_seqs)
+
     for seq in seqs:
         if seq not in test_seqs:
             train_seqs.append(seq)
@@ -24,12 +34,12 @@ def return_dataset(cfg,num_clients):
     train_datasets=[]
     samples=[]
 
-    images_test,activities_test,bboxes_test,bboxes_num_test= \
-        education_read_annotations(cfg.data_path,test_seqs,img_path,cfg.num_frames)
-    validation_set=EducationDataset(images_test,activities_test,bboxes_test,bboxes_num_test,\
+    '''images_test,activities_test,bboxes_test,bboxes_num_test,pos_mat_test= \
+        education_read_annotations(cfg.data_path,test_seqs,img_path,cfg.num_frames,cfg.out_size)'''
+    validation_set=EducationDataset(cfg.data_path,test_seqs,img_path,\
         cfg.num_frames,cfg.image_size,cfg.out_size,cfg.num_boxes)
 
-    max_bboxes=max(bboxes_num_test)
+    #max_bboxes=max(bboxes_num_test)
 
     for i in range(num_clients):
 
@@ -40,23 +50,21 @@ def return_dataset(cfg,num_clients):
         else: 
             cur=train_seqs[idx:idx+seq_per_client] 
             idx+=seq_per_client
-    
-        
 
-        images_train,activities_train,bboxes_train,bboxes_num_train= \
-            education_read_annotations(cfg.data_path,cur,img_path,cfg.num_frames)
-        training_set=EducationDataset(images_train,activities_train,bboxes_train,bboxes_num_train,\
+        '''images_train,activities_train,bboxes_train,bboxes_num_train= \
+            education_read_annotations(cfg.data_path,cur,img_path,cfg.num_frames,cfg.out_size)'''
+        training_set=EducationDataset(cfg.data_path,cur,img_path,\
             cfg.num_frames,cfg.image_size,cfg.out_size,cfg.num_boxes)
         train_datasets.append(training_set)
-        samples.append(len(images_train))
-        max_bboxes=max(max_bboxes,max(bboxes_num_train))
+        samples.append(len(training_set))
+        #max_bboxes=max(max_bboxes,max(bboxes_num_train))
         
-    print("max bboxes:",max_bboxes)
+    #print("max bboxes:",max_bboxes)
 
     
 
     print('%s train samples'%str(samples))
-    print('%d test samples'%len(images_test))
+    print('%d test samples'%len(validation_set))
                                          
     
     print('Reading dataset finished...')

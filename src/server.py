@@ -1,4 +1,5 @@
 import copy
+import time
 import gc
 import logging
 
@@ -185,12 +186,14 @@ class Server(object):
         del message; gc.collect()
 
         
+        round_begin=time.time()
         selected_total_size = 0
         for idx in tqdm(sampled_client_indices, leave=False):
             self.clients[idx].client_update()
             selected_total_size += len(self.clients[idx])
+        
 
-        message = f"[Round: {str(self._round).zfill(4)}] ...{len(sampled_client_indices)} clients are selected and updated (with total sample size: {str(selected_total_size)})!"
+        message = f"[Round: {str(self._round).zfill(4)}] ...{len(sampled_client_indices)} clients are selected and updated (with total sample size: {str(selected_total_size)})! Time: {time.time()-round_begin}sec"
         print(message); logging.info(message)
         del message; gc.collect()
 
@@ -305,7 +308,7 @@ class Server(object):
                 bboxes_num=batch_data[3].reshape(batch_size,num_frames)
 
                 # forward
-                activities_scores = self.model((batch_data[0], batch_data[1], batch_data[3]))['activities']
+                activities_scores = self.model((batch_data[0], batch_data[1], batch_data[3],batch_data[4],batch_data[5]))['activities']
                 
                 activities_in=activities_in[:,0].reshape(batch_size,)
 

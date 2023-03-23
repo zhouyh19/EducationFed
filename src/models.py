@@ -102,6 +102,125 @@ class CNN2(nn.Module):
         
         return x
 
+
+
+
+
+class PositionalInferenceBlock(nn.Module):
+    def __init__(self,s,t,feature_len,attn_len,posembed_len):
+        super(PositionalInferenceBlock, self).__init__()
+        self.s=s
+        self.t=t
+        self.feature_len=feature_len
+        self.attn_len=attn_len
+        self.posembed_len=posembed_len
+        self.a_mat=nn.Linear(feature_len,attn_len)
+        self.b_mat=nn.Linear(feature_len+posembed_len*2,attn_len)
+        self.g=nn.Linear(feature_len+posembed_len*2,feature_len)
+        self.pos=nn.Linear(9,posembed_len)
+        self.tmp=nn.Linear(10,posembed_len*2)
+        self.softmax=nn.Softmax(dim=1)
+
+    def forward(self, batch_data, positions,temp):
+        #positions=positions.to(self.device)
+        batch_data=batch_data.reshape((self.t,self.s,-1))
+        pos1=self.pos(positions[0])
+        pos2=self.pos(positions[1])
+        pos=torch.concat((pos1,pos2),-1)
+        tmp=self.tmp(temp)
+        #print(pos.shape)
+
+        theta=self.a_mat(batch_data).reshape((self.t,self.s,-1))
+
+        new_pos=[pos.unsqueeze(0) for i in range(self.t)]
+        new_pos=torch.concat(new_pos)
+        #batch_data_with_pos=torch.concat((batch_data,new_pos),2)
+        #phi=self.b_mat(batch_data_with_pos).reshape((self.t,self.s,-1))
+        #feats=self.g(batch_data_with_pos).reshape((self.t,self.s,-1))
+
+        #phi=self.b_mat(batch_data).reshape((self.t,self.s,-1))
+        results=torch.zeros((self.t,self.s,self.feature_len)).to(batch_data.device)
+
+        phi_with_pos=[]
+        feats_with_pos=[]
+        for j in range(self.s):
+            #print(batch_data.shape,new_pos[:,j].shape)
+            local_pos=torch.concat((batch_data,new_pos[:,j]),-1)
+            local_phi=self.b_mat(local_pos).reshape((self.t,self.s,-1))
+            local_feats=self.g(local_pos).reshape((self.t,self.s,-1))
+            phi_with_pos.append(local_phi)
+            feats_with_pos.append(local_feats)
+
+        for i in range(self.t):
+            #phi_=torch.transpose(phi[i],0,1)
+            
+            #batch_result=torch.mm(theta_,phi_)
+            #print(theta.shape,theta_.shape,phi_.shape,batch_result.shape)
+            for j in range(self.s):
+                batch_result=torch.mm(theta[i][j].unsqueeze(0),torch.transpose(phi_with_pos[j][i],0,1))
+                batch_result=self.softmax(batch_result)
+                results[i][j]+=torch.mm(batch_result.reshape((1,self.s)),feats_with_pos[j][i]).reshape(-1)
+        
+        phi_with_tmp=[]
+        feats_with_tmp=[]
+        for i in range(self.t):
+            #print(tmp.shape)
+            local_pos=torch.concat((batch_data,tmp[i]),-1)
+            local_phi=self.b_mat(local_pos).reshape((self.t,self.s,-1))
+            local_feats=self.g(local_pos).reshape((self.t,self.s,-1))
+            phi_with_tmp.append(local_phi)
+            feats_with_tmp.append(local_feats)
+
+        for i in range(self.s):
+            #print(theta.shape,theta_.shape,phi_.shape,batch_result.shape)
+            for j in range(self.t):
+                batch_result=torch.mm(theta[j][i].unsqueeze(0),torch.transpose(phi_with_tmp[j][:,i],0,1))
+                batch_result=self.softmax(batch_result)
+                results[j][i]+=torch.mm(batch_result.reshape((1,self.t)),feats_with_tmp[j][:,i]).reshape(-1)
+
+        #print(results)
+        #print(True in torch.isnan(results))
+        return results
+
+
+class CrossInferenceBlock(nn.Module):
+    def __init__(self,s,t,feature_len,attn_len):
+        super(CrossInferenceBlock, self).__init__()
+        self.s=s
+        self.t=t
+        self.feature_len=feature_len
+        self.attn_len=attn_len
+        self.a_mat=nn.Linear(feature_len,attn_len)
+        self.b_mat=nn.Linear(feature_len,attn_len)
+        self.g=nn.Linear(feature_len,feature_len)
+    
+    def forward(self, batch_data):
+        theta=self.a_mat(batch_data).reshape((self.t,self.s,-1))
+        phi=self.b_mat(batch_data).reshape((self.t,self.s,-1))
+        feats=self.g(batch_data).reshape((self.t,self.s,-1))
+        results=torch.zeros((self.t,self.s,self.feature_len)).to(batch_data.device)
+        for i in range(self.t):
+            theta_=theta[i]
+            phi_=torch.transpose(phi[i],0,1)
+            
+            batch_result=torch.mm(theta_,phi_)
+            #print(theta.shape,theta_.shape,phi_.shape,batch_result.shape)
+            for j in range(self.s):
+                results[i][j]+=torch.mm(batch_result[j].reshape((1,self.s)),feats[i]).reshape(-1)
+        
+        '''for i in range(self.s):
+            theta_=theta[:,i]
+            phi_=torch.transpose(phi[:,i],0,1)
+            
+            batch_result=torch.mm(theta_,phi_)
+            #print(theta.shape,theta_.shape,phi_.shape,batch_result.shape)
+            for j in range(self.t):
+                results[j][i]+=torch.mm(batch_result[j].reshape((1,self.t)),feats[:,i]).reshape(-1)'''
+
+        results/=(self.s+self.t)
+        return results
+
+
 class Dynamic_collective(nn.Module):
     def __init__(self, cfg):
         super(Dynamic_collective, self).__init__()
@@ -185,6 +304,8 @@ class Dynamic_collective(nn.Module):
                 if m.bias is not None:
                     nn.init.zeros_(m.bias)
 
+        #self.cim=CrossInferenceBlock(40,10,1024,1024)
+        self.pim=PositionalInferenceBlock(40,10,1024,1024,64)
     #         nn.init.zeros_(self.fc_gcn_3.weight)
         #self.writer=SummaryWriter('./runs')
 
@@ -195,7 +316,7 @@ class Dynamic_collective(nn.Module):
         print('Load model states from: ', filepath)
 
     def forward(self, batch_data):
-        images_in, boxes_in, bboxes_num_in = batch_data
+        images_in, boxes_in, bboxes_num_in,pos_mat,tmp_mat = batch_data
 
         # read config parameters
         B = images_in.shape[0]
@@ -264,7 +385,11 @@ class Dynamic_collective(nn.Module):
             # boxes_positions = boxes_in[b, :, :N, :].reshape(T * N, 4)  # T*N, 4
 
             # Dynamic graph inference
-            graph_boxes_features = self.DPI(boxes_features)
+            #print(boxes_features.shape)
+            #boxes_features=self.cim(boxes_features).reshape(1,10,40,1024)
+            boxes_features=self.pim(boxes_features,pos_mat[b],tmp_mat[b]).reshape(1,10,40,1024)
+            graph_boxes_features=boxes_features
+            #graph_boxes_features = self.DPI(boxes_features)
             torch.cuda.empty_cache()
 
             # cat graph_boxes_features with boxes_features

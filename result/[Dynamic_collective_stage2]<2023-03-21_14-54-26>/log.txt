@@ -1,0 +1,3 @@
+Deactivate lite model inference.
+Dynamic sampling: True, Scale factor: True, ST-kernel:(3, 3)
+Hierarchical Inference : False

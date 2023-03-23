@@ -1,1 +1,0 @@
-Deactivate lite model inference.
