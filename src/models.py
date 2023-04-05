@@ -115,25 +115,26 @@ class PositionalInferenceBlock(nn.Module):
         self.attn_len=attn_len
         self.posembed_len=posembed_len
         self.a_mat=nn.Linear(feature_len,attn_len)
-        self.b_mat=nn.Linear(feature_len+posembed_len*2,attn_len)
-        self.g=nn.Linear(feature_len+posembed_len*2,feature_len)
+        self.b_mat=nn.Linear(feature_len+posembed_len,attn_len)
+        self.g=nn.Linear(feature_len+posembed_len,feature_len)
         self.pos=nn.Linear(9,posembed_len)
-        self.tmp=nn.Linear(10,posembed_len*2)
+        self.tmp=nn.Linear(10,posembed_len)
         self.softmax=nn.Softmax(dim=1)
 
     def forward(self, batch_data, positions,temp):
         #positions=positions.to(self.device)
         batch_data=batch_data.reshape((self.t,self.s,-1))
-        pos1=self.pos(positions[0])
-        pos2=self.pos(positions[1])
-        pos=torch.concat((pos1,pos2),-1)
+        #pos1=self.pos(positions[0])
+        #pos2=self.pos(positions[1])
+        #pos=torch.concat((pos1,pos2),-1)
+        pos=self.pos(positions)
         tmp=self.tmp(temp)
         #print(pos.shape)
 
         theta=self.a_mat(batch_data).reshape((self.t,self.s,-1))
 
-        new_pos=[pos.unsqueeze(0) for i in range(self.t)]
-        new_pos=torch.concat(new_pos)
+        '''new_pos=[pos.unsqueeze(0) for i in range(self.t)]
+        new_pos=torch.concat(new_pos)'''
         #batch_data_with_pos=torch.concat((batch_data,new_pos),2)
         #phi=self.b_mat(batch_data_with_pos).reshape((self.t,self.s,-1))
         #feats=self.g(batch_data_with_pos).reshape((self.t,self.s,-1))
@@ -145,7 +146,7 @@ class PositionalInferenceBlock(nn.Module):
         feats_with_pos=[]
         for j in range(self.s):
             #print(batch_data.shape,new_pos[:,j].shape)
-            local_pos=torch.concat((batch_data,new_pos[:,j]),-1)
+            local_pos=torch.concat((batch_data,pos[:,j]),-1)
             local_phi=self.b_mat(local_pos).reshape((self.t,self.s,-1))
             local_feats=self.g(local_pos).reshape((self.t,self.s,-1))
             phi_with_pos.append(local_phi)
@@ -180,7 +181,26 @@ class PositionalInferenceBlock(nn.Module):
 
         #print(results)
         #print(True in torch.isnan(results))
+        #results/=(self.s+self.t)
         return results
+
+class STGridModule(nn.Module):
+    def __init__(self,s,t,feature_len):
+        super(STGridModule, self).__init__()
+        self.s=s
+        self.t=t
+        self.feature_len=feature_len
+        self.f=nn.Linear(feature_len*2,feature_len)
+    
+    def forward(self,batch_data):
+        batch_data=batch_data.reshape((self.t,self.s,self.feature_len))
+        s_pooling,_=torch.max(batch_data,dim=1)
+        t_pooling,_=torch.max(batch_data,dim=0)
+        result=torch.zeros((self.t,self.s,self.feature_len)).to(batch_data.device)
+        for i in range(self.s):
+            for j in range(self.t):
+                result[j,i]=self.f(torch.concat((s_pooling[j],t_pooling[i]),0))
+        return result
 
 
 class CrossInferenceBlock(nn.Module):
@@ -305,8 +325,10 @@ class Dynamic_collective(nn.Module):
                     nn.init.zeros_(m.bias)
 
         #self.cim=CrossInferenceBlock(40,10,1024,1024)
-        self.pim=PositionalInferenceBlock(40,10,1024,1024,64)
-    #         nn.init.zeros_(self.fc_gcn_3.weight)
+        self.pim1=PositionalInferenceBlock(40,10,1024,1024,512)
+        self.stg=STGridModule(40,10,1024)
+        #self.pim2=PositionalInferenceBlock(40,10,1024,1024,512)
+        #nn.init.zeros_(self.fc_gcn_3.weight)
         #self.writer=SummaryWriter('./runs')
 
     def loadmodel(self, filepath):
@@ -380,22 +402,28 @@ class Dynamic_collective(nn.Module):
         bboxes_num_in = bboxes_num_in.reshape(B, T)  # B,T,
         for b in range(B):
             #N = bboxes_num_in[b][0]
-            N=MAX_N
-            boxes_features = boxes_features_all[b, :, :N, :].reshape(1, T, N, -1)  # 1,T,N,NFB
+            #N=MAX_N
+            N = bboxes_num_in[b][0]
+            boxes_features = boxes_features_all[b, :, :MAX_N, :].reshape(1, T, MAX_N, -1)  # 1,T,N,NFB
+            
             # boxes_positions = boxes_in[b, :, :N, :].reshape(T * N, 4)  # T*N, 4
 
             # Dynamic graph inference
             #print(boxes_features.shape)
             #boxes_features=self.cim(boxes_features).reshape(1,10,40,1024)
-            boxes_features=self.pim(boxes_features,pos_mat[b],tmp_mat[b]).reshape(1,10,40,1024)
-            graph_boxes_features=boxes_features
+            graph_boxes_features=self.pim1(boxes_features,pos_mat[b],tmp_mat[b]).reshape(1,10,40,1024)
+            grid_features=self.stg(boxes_features).reshape(1,10,40,1024)
+            #boxes_features=self.pim2(boxes_features,pos_mat[b],tmp_mat[b]).reshape(1,10,40,1024)
+            graph_boxes_features=graph_boxes_features+grid_features  #[:,:,:N]
+            #print(graph_boxes_features.shape)
             #graph_boxes_features = self.DPI(boxes_features)
             torch.cuda.empty_cache()
 
             # cat graph_boxes_features with boxes_features
             #print(len(graph_boxes_features),boxes_features.shape)
             #print(graph_boxes_features[0].shape,graph_boxes_features[1].shape)
-            boxes_states = graph_boxes_features + boxes_features  # 1, T, N, NFG
+            boxes_states = graph_boxes_features #+ boxes_features  # 1, T, N, NFG
+            boxes_states = boxes_states[:,:,:N]
             boxes_states = boxes_states.permute(0, 2, 1, 3).view(N, T, -1)
             boxes_states = self.dpi_nl(boxes_states)
             boxes_states = F.relu(boxes_states, inplace=True)

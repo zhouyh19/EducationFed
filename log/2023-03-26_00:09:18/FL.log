@@ -1,0 +1,216 @@
+[INFO](2023/03/26/ 12:09:21 AM) 
+[WELCOME] Unfolding configurations...!
+[INFO](2023/03/26/ 12:09:21 AM) {'global_config': {'seed': 5959, 'device': 'cuda', 'is_mp': False}}
+[INFO](2023/03/26/ 12:09:21 AM) {'data_config': {'data_path': '../processed', 'dataset_name': 'MNIST', 'num_shards': 200, 'iid': False}}
+[INFO](2023/03/26/ 12:09:21 AM) {'fed_config': {'C': 0.1, 'K': 4, 'R': 500, 'E': 2, 'B': 2, 'criterion': 'torch.nn.CrossEntropyLoss', 'optimizer': 'torch.optim.SGD'}}
+[INFO](2023/03/26/ 12:09:21 AM) {'optim_config': {'lr': 5e-07, 'momentum': 0.9, 'weight_decay': 0.0001}}
+[INFO](2023/03/26/ 12:09:21 AM) {'init_config': {'init_type': 'xavier', 'init_gain': 1.0, 'gpu_ids': [0]}}
+[INFO](2023/03/26/ 12:09:21 AM) {'model_config': {'name': 'CNN', 'in_channels': 1, 'hidden_channels': 32, 'num_hiddens': 512, 'num_classes': 10}}
+[INFO](2023/03/26/ 12:09:21 AM) {'log_config': {'log_path': './log/2023-03-26_00:09:18', 'log_name': 'FL.log', 'tb_port': 5252, 'tb_host': '0.0.0.0'}}
+[INFO](2023/03/26/ 12:09:22 AM) [Round: 0000] ...successfully initialized model (# parameters: 37606496)!
+[INFO](2023/03/26/ 12:52:25 AM) [Round: 0000] ...successfully created all 4 clients!
+[INFO](2023/03/26/ 12:52:25 AM) [Round: 0000] ...successfully finished setup of all 4 clients!
+[INFO](2023/03/26/ 12:52:25 AM) [Round: 0000] ...successfully transmitted models to all 4 clients!
+[INFO](2023/03/26/ 12:52:25 AM) [Round: 0001] Select clients...!
+[INFO](2023/03/26/ 12:52:25 AM) [Round: 0001] ...successfully transmitted models to 1 selected clients!
+[INFO](2023/03/26/ 12:52:25 AM) [Round: 0001] Start updating selected 1 clients...!
+[INFO](2023/03/26/ 01:11:30 AM) [Round: 0001] ...1 clients are selected and updated (with total sample size: 1184)! Time: 1144.1968421936035sec
+[INFO](2023/03/26/ 01:11:30 AM) [Round: 0001] Evaluate selected 1 clients' models...!
+[INFO](2023/03/26/ 01:16:18 AM) [Round: 0001] ...finished evaluation of 1 selected clients!
+[INFO](2023/03/26/ 01:16:19 AM) [Round: 0001] Aggregate updated weights of 1 clients...!
+[INFO](2023/03/26/ 01:16:19 AM) [Round: 0001] ...updated weights of 1 clients are successfully averaged!
+[INFO](2023/03/26/ 01:22:42 AM) [Round: 0001] Evaluate global model's performance...!                
+	[Server] ...finished evaluation!                
+	=> Loss: 0.6610                
+	=> Accuracy: 79.45%
+
+[INFO](2023/03/26/ 01:22:42 AM) [Round: 0002] Select clients...!
+[INFO](2023/03/26/ 01:22:42 AM) [Round: 0002] ...successfully transmitted models to 1 selected clients!
+[INFO](2023/03/26/ 01:22:43 AM) [Round: 0002] Start updating selected 1 clients...!
+[INFO](2023/03/26/ 01:47:18 AM) [Round: 0002] ...1 clients are selected and updated (with total sample size: 1334)! Time: 1475.8250188827515sec
+[INFO](2023/03/26/ 01:47:18 AM) [Round: 0002] Evaluate selected 1 clients' models...!
+[INFO](2023/03/26/ 01:52:39 AM) [Round: 0002] ...finished evaluation of 1 selected clients!
+[INFO](2023/03/26/ 01:52:39 AM) [Round: 0002] Aggregate updated weights of 1 clients...!
+[INFO](2023/03/26/ 01:52:40 AM) [Round: 0002] ...updated weights of 1 clients are successfully averaged!
+[INFO](2023/03/26/ 01:59:00 AM) [Round: 0002] Evaluate global model's performance...!                
+	[Server] ...finished evaluation!                
+	=> Loss: 0.6712                
+	=> Accuracy: 85.94%
+
+[INFO](2023/03/26/ 01:59:00 AM) [Round: 0003] Select clients...!
+[INFO](2023/03/26/ 01:59:00 AM) [Round: 0003] ...successfully transmitted models to 1 selected clients!
+[INFO](2023/03/26/ 01:59:00 AM) [Round: 0003] Start updating selected 1 clients...!
+[INFO](2023/03/26/ 02:24:15 AM) [Round: 0003] ...1 clients are selected and updated (with total sample size: 1396)! Time: 1514.4974374771118sec
+[INFO](2023/03/26/ 02:24:15 AM) [Round: 0003] Evaluate selected 1 clients' models...!
+[INFO](2023/03/26/ 02:29:31 AM) [Round: 0003] ...finished evaluation of 1 selected clients!
+[INFO](2023/03/26/ 02:29:31 AM) [Round: 0003] Aggregate updated weights of 1 clients...!
+[INFO](2023/03/26/ 02:29:31 AM) [Round: 0003] ...updated weights of 1 clients are successfully averaged!
+[INFO](2023/03/26/ 02:35:54 AM) [Round: 0003] Evaluate global model's performance...!                
+	[Server] ...finished evaluation!                
+	=> Loss: 0.4164                
+	=> Accuracy: 85.94%
+
+[INFO](2023/03/26/ 02:35:54 AM) [Round: 0004] Select clients...!
+[INFO](2023/03/26/ 02:35:54 AM) [Round: 0004] ...successfully transmitted models to 1 selected clients!
+[INFO](2023/03/26/ 02:35:54 AM) [Round: 0004] Start updating selected 1 clients...!
+[INFO](2023/03/26/ 02:55:44 AM) [Round: 0004] ...1 clients are selected and updated (with total sample size: 1070)! Time: 1189.4479653835297sec
+[INFO](2023/03/26/ 02:55:44 AM) [Round: 0004] Evaluate selected 1 clients' models...!
+[INFO](2023/03/26/ 02:59:55 AM) [Round: 0004] ...finished evaluation of 1 selected clients!
+[INFO](2023/03/26/ 02:59:55 AM) [Round: 0004] Aggregate updated weights of 1 clients...!
+[INFO](2023/03/26/ 02:59:55 AM) [Round: 0004] ...updated weights of 1 clients are successfully averaged!
+[INFO](2023/03/26/ 03:06:18 AM) [Round: 0004] Evaluate global model's performance...!                
+	[Server] ...finished evaluation!                
+	=> Loss: 0.3713                
+	=> Accuracy: 86.06%
+
+[INFO](2023/03/26/ 03:06:18 AM) [Round: 0005] Select clients...!
+[INFO](2023/03/26/ 03:06:19 AM) [Round: 0005] ...successfully transmitted models to 1 selected clients!
+[INFO](2023/03/26/ 03:06:19 AM) [Round: 0005] Start updating selected 1 clients...!
+[INFO](2023/03/26/ 03:25:52 AM) [Round: 0005] ...1 clients are selected and updated (with total sample size: 1070)! Time: 1172.8499991893768sec
+[INFO](2023/03/26/ 03:25:52 AM) [Round: 0005] Evaluate selected 1 clients' models...!
+[INFO](2023/03/26/ 03:30:01 AM) [Round: 0005] ...finished evaluation of 1 selected clients!
+[INFO](2023/03/26/ 03:30:01 AM) [Round: 0005] Aggregate updated weights of 1 clients...!
+[INFO](2023/03/26/ 03:30:01 AM) [Round: 0005] ...updated weights of 1 clients are successfully averaged!
+[INFO](2023/03/26/ 03:36:21 AM) [Round: 0005] Evaluate global model's performance...!                
+	[Server] ...finished evaluation!                
+	=> Loss: 0.3965                
+	=> Accuracy: 77.58%
+
+[INFO](2023/03/26/ 03:36:21 AM) [Round: 0006] Select clients...!
+[INFO](2023/03/26/ 03:36:21 AM) [Round: 0006] ...successfully transmitted models to 1 selected clients!
+[INFO](2023/03/26/ 03:36:21 AM) [Round: 0006] Start updating selected 1 clients...!
+[INFO](2023/03/26/ 03:58:26 AM) [Round: 0006] ...1 clients are selected and updated (with total sample size: 1184)! Time: 1324.826476573944sec
+[INFO](2023/03/26/ 03:58:26 AM) [Round: 0006] Evaluate selected 1 clients' models...!
+[INFO](2023/03/26/ 04:03:28 AM) [Round: 0006] ...finished evaluation of 1 selected clients!
+[INFO](2023/03/26/ 04:03:29 AM) [Round: 0006] Aggregate updated weights of 1 clients...!
+[INFO](2023/03/26/ 04:03:29 AM) [Round: 0006] ...updated weights of 1 clients are successfully averaged!
+[INFO](2023/03/26/ 04:09:51 AM) [Round: 0006] Evaluate global model's performance...!                
+	[Server] ...finished evaluation!                
+	=> Loss: 0.6240                
+	=> Accuracy: 81.43%
+
+[INFO](2023/03/26/ 04:09:51 AM) [Round: 0007] Select clients...!
+[INFO](2023/03/26/ 04:09:51 AM) [Round: 0007] ...successfully transmitted models to 1 selected clients!
+[INFO](2023/03/26/ 04:09:51 AM) [Round: 0007] Start updating selected 1 clients...!
+[INFO](2023/03/26/ 04:29:31 AM) [Round: 0007] ...1 clients are selected and updated (with total sample size: 1070)! Time: 1180.0275483131409sec
+[INFO](2023/03/26/ 04:29:31 AM) [Round: 0007] Evaluate selected 1 clients' models...!
+[INFO](2023/03/26/ 04:33:42 AM) [Round: 0007] ...finished evaluation of 1 selected clients!
+[INFO](2023/03/26/ 04:33:42 AM) [Round: 0007] Aggregate updated weights of 1 clients...!
+[INFO](2023/03/26/ 04:33:42 AM) [Round: 0007] ...updated weights of 1 clients are successfully averaged!
+[INFO](2023/03/26/ 04:40:05 AM) [Round: 0007] Evaluate global model's performance...!                
+	[Server] ...finished evaluation!                
+	=> Loss: 0.5091                
+	=> Accuracy: 77.52%
+
+[INFO](2023/03/26/ 04:40:05 AM) [Round: 0008] Select clients...!
+[INFO](2023/03/26/ 04:40:05 AM) [Round: 0008] ...successfully transmitted models to 1 selected clients!
+[INFO](2023/03/26/ 04:40:05 AM) [Round: 0008] Start updating selected 1 clients...!
+[INFO](2023/03/26/ 05:05:43 AM) [Round: 0008] ...1 clients are selected and updated (with total sample size: 1396)! Time: 1537.7991914749146sec
+[INFO](2023/03/26/ 05:05:43 AM) [Round: 0008] Evaluate selected 1 clients' models...!
+[INFO](2023/03/26/ 05:11:00 AM) [Round: 0008] ...finished evaluation of 1 selected clients!
+[INFO](2023/03/26/ 05:11:00 AM) [Round: 0008] Aggregate updated weights of 1 clients...!
+[INFO](2023/03/26/ 05:11:00 AM) [Round: 0008] ...updated weights of 1 clients are successfully averaged!
+[INFO](2023/03/26/ 05:17:24 AM) [Round: 0008] Evaluate global model's performance...!                
+	[Server] ...finished evaluation!                
+	=> Loss: 0.7056                
+	=> Accuracy: 78.49%
+
+[INFO](2023/03/26/ 05:17:24 AM) [Round: 0009] Select clients...!
+[INFO](2023/03/26/ 05:17:24 AM) [Round: 0009] ...successfully transmitted models to 1 selected clients!
+[INFO](2023/03/26/ 05:17:24 AM) [Round: 0009] Start updating selected 1 clients...!
+[INFO](2023/03/26/ 05:39:50 AM) [Round: 0009] ...1 clients are selected and updated (with total sample size: 1184)! Time: 1345.6493957042694sec
+[INFO](2023/03/26/ 05:39:50 AM) [Round: 0009] Evaluate selected 1 clients' models...!
+[INFO](2023/03/26/ 05:44:49 AM) [Round: 0009] ...finished evaluation of 1 selected clients!
+[INFO](2023/03/26/ 05:44:49 AM) [Round: 0009] Aggregate updated weights of 1 clients...!
+[INFO](2023/03/26/ 05:44:49 AM) [Round: 0009] ...updated weights of 1 clients are successfully averaged!
+[INFO](2023/03/26/ 05:51:12 AM) [Round: 0009] Evaluate global model's performance...!                
+	[Server] ...finished evaluation!                
+	=> Loss: 0.6717                
+	=> Accuracy: 78.85%
+
+[INFO](2023/03/26/ 05:51:13 AM) [Round: 0010] Select clients...!
+[INFO](2023/03/26/ 05:51:13 AM) [Round: 0010] ...successfully transmitted models to 1 selected clients!
+[INFO](2023/03/26/ 05:51:13 AM) [Round: 0010] Start updating selected 1 clients...!
+[INFO](2023/03/26/ 06:13:26 AM) [Round: 0010] ...1 clients are selected and updated (with total sample size: 1184)! Time: 1333.5018815994263sec
+[INFO](2023/03/26/ 06:13:26 AM) [Round: 0010] Evaluate selected 1 clients' models...!
+[INFO](2023/03/26/ 06:18:25 AM) [Round: 0010] ...finished evaluation of 1 selected clients!
+[INFO](2023/03/26/ 06:18:25 AM) [Round: 0010] Aggregate updated weights of 1 clients...!
+[INFO](2023/03/26/ 06:18:25 AM) [Round: 0010] ...updated weights of 1 clients are successfully averaged!
+[INFO](2023/03/26/ 06:24:49 AM) [Round: 0010] Evaluate global model's performance...!                
+	[Server] ...finished evaluation!                
+	=> Loss: 1.1238                
+	=> Accuracy: 83.65%
+
+[INFO](2023/03/26/ 06:24:49 AM) [Round: 0011] Select clients...!
+[INFO](2023/03/26/ 06:24:49 AM) [Round: 0011] ...successfully transmitted models to 1 selected clients!
+[INFO](2023/03/26/ 06:24:50 AM) [Round: 0011] Start updating selected 1 clients...!
+[INFO](2023/03/26/ 06:49:34 AM) [Round: 0011] ...1 clients are selected and updated (with total sample size: 1334)! Time: 1484.499802827835sec
+[INFO](2023/03/26/ 06:49:34 AM) [Round: 0011] Evaluate selected 1 clients' models...!
+[INFO](2023/03/26/ 06:54:57 AM) [Round: 0011] ...finished evaluation of 1 selected clients!
+[INFO](2023/03/26/ 06:54:57 AM) [Round: 0011] Aggregate updated weights of 1 clients...!
+[INFO](2023/03/26/ 06:54:57 AM) [Round: 0011] ...updated weights of 1 clients are successfully averaged!
+[INFO](2023/03/26/ 07:01:19 AM) [Round: 0011] Evaluate global model's performance...!                
+	[Server] ...finished evaluation!                
+	=> Loss: 0.4978                
+	=> Accuracy: 85.70%
+
+[INFO](2023/03/26/ 07:01:19 AM) [Round: 0012] Select clients...!
+[INFO](2023/03/26/ 07:01:19 AM) [Round: 0012] ...successfully transmitted models to 1 selected clients!
+[INFO](2023/03/26/ 07:01:19 AM) [Round: 0012] Start updating selected 1 clients...!
+[INFO](2023/03/26/ 07:26:43 AM) [Round: 0012] ...1 clients are selected and updated (with total sample size: 1396)! Time: 1523.8925552368164sec
+[INFO](2023/03/26/ 07:26:43 AM) [Round: 0012] Evaluate selected 1 clients' models...!
+[INFO](2023/03/26/ 07:31:59 AM) [Round: 0012] ...finished evaluation of 1 selected clients!
+[INFO](2023/03/26/ 07:31:59 AM) [Round: 0012] Aggregate updated weights of 1 clients...!
+[INFO](2023/03/26/ 07:31:59 AM) [Round: 0012] ...updated weights of 1 clients are successfully averaged!
+[INFO](2023/03/26/ 07:38:21 AM) [Round: 0012] Evaluate global model's performance...!                
+	[Server] ...finished evaluation!                
+	=> Loss: 0.8640                
+	=> Accuracy: 66.23%
+
+[INFO](2023/03/26/ 07:38:21 AM) [Round: 0013] Select clients...!
+[INFO](2023/03/26/ 07:38:21 AM) [Round: 0013] ...successfully transmitted models to 1 selected clients!
+[INFO](2023/03/26/ 07:38:21 AM) [Round: 0013] Start updating selected 1 clients...!
+[INFO](2023/03/26/ 07:58:06 AM) [Round: 0013] ...1 clients are selected and updated (with total sample size: 1070)! Time: 1185.2173974514008sec
+[INFO](2023/03/26/ 07:58:06 AM) [Round: 0013] Evaluate selected 1 clients' models...!
+[INFO](2023/03/26/ 08:02:17 AM) [Round: 0013] ...finished evaluation of 1 selected clients!
+[INFO](2023/03/26/ 08:02:17 AM) [Round: 0013] Aggregate updated weights of 1 clients...!
+[INFO](2023/03/26/ 08:02:17 AM) [Round: 0013] ...updated weights of 1 clients are successfully averaged!
+[INFO](2023/03/26/ 08:08:40 AM) [Round: 0013] Evaluate global model's performance...!                
+	[Server] ...finished evaluation!                
+	=> Loss: 0.8826                
+	=> Accuracy: 65.14%
+
+[INFO](2023/03/26/ 08:08:40 AM) [Round: 0014] Select clients...!
+[INFO](2023/03/26/ 08:08:40 AM) [Round: 0014] ...successfully transmitted models to 1 selected clients!
+[INFO](2023/03/26/ 08:08:40 AM) [Round: 0014] Start updating selected 1 clients...!
+[INFO](2023/03/26/ 08:34:08 AM) [Round: 0014] ...1 clients are selected and updated (with total sample size: 1396)! Time: 1527.8751413822174sec
+[INFO](2023/03/26/ 08:34:08 AM) [Round: 0014] Evaluate selected 1 clients' models...!
+[INFO](2023/03/26/ 08:39:25 AM) [Round: 0014] ...finished evaluation of 1 selected clients!
+[INFO](2023/03/26/ 08:39:25 AM) [Round: 0014] Aggregate updated weights of 1 clients...!
+[INFO](2023/03/26/ 08:39:25 AM) [Round: 0014] ...updated weights of 1 clients are successfully averaged!
+[INFO](2023/03/26/ 08:45:50 AM) [Round: 0014] Evaluate global model's performance...!                
+	[Server] ...finished evaluation!                
+	=> Loss: 0.9657                
+	=> Accuracy: 61.60%
+
+[INFO](2023/03/26/ 08:45:50 AM) [Round: 0015] Select clients...!
+[INFO](2023/03/26/ 08:45:50 AM) [Round: 0015] ...successfully transmitted models to 1 selected clients!
+[INFO](2023/03/26/ 08:45:51 AM) [Round: 0015] Start updating selected 1 clients...!
+[INFO](2023/03/26/ 09:05:38 AM) [Round: 0015] ...1 clients are selected and updated (with total sample size: 1070)! Time: 1187.8053760528564sec
+[INFO](2023/03/26/ 09:05:38 AM) [Round: 0015] Evaluate selected 1 clients' models...!
+[INFO](2023/03/26/ 09:09:47 AM) [Round: 0015] ...finished evaluation of 1 selected clients!
+[INFO](2023/03/26/ 09:09:47 AM) [Round: 0015] Aggregate updated weights of 1 clients...!
+[INFO](2023/03/26/ 09:09:48 AM) [Round: 0015] ...updated weights of 1 clients are successfully averaged!
+[INFO](2023/03/26/ 09:16:10 AM) [Round: 0015] Evaluate global model's performance...!                
+	[Server] ...finished evaluation!                
+	=> Loss: 0.6136                
+	=> Accuracy: 73.92%
+
+[INFO](2023/03/26/ 09:16:10 AM) [Round: 0016] Select clients...!
+[INFO](2023/03/26/ 09:16:10 AM) [Round: 0016] ...successfully transmitted models to 1 selected clients!
+[INFO](2023/03/26/ 09:16:10 AM) [Round: 0016] Start updating selected 1 clients...!
+[INFO](2023/03/26/ 09:38:31 AM) [Round: 0016] ...1 clients are selected and updated (with total sample size: 1184)! Time: 1340.8978683948517sec
+[INFO](2023/03/26/ 09:38:31 AM) [Round: 0016] Evaluate selected 1 clients' models...!
+[INFO](2023/03/26/ 09:43:28 AM) [Round: 0016] ...finished evaluation of 1 selected clients!
+[INFO](2023/03/26/ 09:43:28 AM) [Round: 0016] Aggregate updated weights of 1 clients...!
+[INFO](2023/03/26/ 09:43:28 AM) [Round: 0016] ...updated weights of 1 clients are successfully averaged!

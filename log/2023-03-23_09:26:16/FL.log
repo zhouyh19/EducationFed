@@ -40,3 +40,29 @@
 [INFO](2023/03/23/ 01:29:40 PM) [Round: 0003] Select clients...!
 [INFO](2023/03/23/ 01:29:40 PM) [Round: 0003] ...successfully transmitted models to 1 selected clients!
 [INFO](2023/03/23/ 01:29:40 PM) [Round: 0003] Start updating selected 1 clients...!
+[INFO](2023/03/23/ 02:39:48 PM) [Round: 0003] ...1 clients are selected and updated (with total sample size: 4984)! Time: 4207.931150197983sec
+[INFO](2023/03/23/ 02:39:48 PM) [Round: 0003] Evaluate selected 1 clients' models...!
+[INFO](2023/03/23/ 03:04:30 PM) [Round: 0003] ...finished evaluation of 1 selected clients!
+[INFO](2023/03/23/ 03:04:30 PM) [Round: 0003] Aggregate updated weights of 1 clients...!
+[INFO](2023/03/23/ 03:04:30 PM) [Round: 0003] ...updated weights of 1 clients are successfully averaged!
+[INFO](2023/03/23/ 03:12:33 PM) [Round: 0003] Evaluate global model's performance...!                
+	[Server] ...finished evaluation!                
+	=> Loss: 0.5402                
+	=> Accuracy: 71.57%
+
+[INFO](2023/03/23/ 03:12:33 PM) [Round: 0004] Select clients...!
+[INFO](2023/03/23/ 03:12:33 PM) [Round: 0004] ...successfully transmitted models to 1 selected clients!
+[INFO](2023/03/23/ 03:12:33 PM) [Round: 0004] Start updating selected 1 clients...!
+[INFO](2023/03/23/ 04:22:52 PM) [Round: 0004] ...1 clients are selected and updated (with total sample size: 4984)! Time: 4219.313045501709sec
+[INFO](2023/03/23/ 04:22:52 PM) [Round: 0004] Evaluate selected 1 clients' models...!
+[INFO](2023/03/23/ 04:47:32 PM) [Round: 0004] ...finished evaluation of 1 selected clients!
+[INFO](2023/03/23/ 04:47:32 PM) [Round: 0004] Aggregate updated weights of 1 clients...!
+[INFO](2023/03/23/ 04:47:32 PM) [Round: 0004] ...updated weights of 1 clients are successfully averaged!
+[INFO](2023/03/23/ 04:55:35 PM) [Round: 0004] Evaluate global model's performance...!                
+	[Server] ...finished evaluation!                
+	=> Loss: 0.6057                
+	=> Accuracy: 74.52%
+
+[INFO](2023/03/23/ 04:55:35 PM) [Round: 0005] Select clients...!
+[INFO](2023/03/23/ 04:55:35 PM) [Round: 0005] ...successfully transmitted models to 1 selected clients!
+[INFO](2023/03/23/ 04:55:35 PM) [Round: 0005] Start updating selected 1 clients...!

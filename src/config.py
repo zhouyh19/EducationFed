@@ -11,7 +11,7 @@ class Config(object):
         
         # Dataset
         self.dataset_name='education'
-        self.data_path='../processed'
+        self.data_path='../processed_new'
         
         # Backbone 
         self.crop_size = 5, 5  #crop size of roi align

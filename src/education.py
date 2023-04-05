@@ -171,7 +171,7 @@ class EducationDataset(data.Dataset):
                 selected_frames.sort(key=lambda f: int(f))
                 #print(selected_frames)
 
-                print('begin seq:',seq_path)
+                #print('begin seq:',seq_path)
                 with open(seq_path+'annotations.txt',mode='r') as f:
                     for l in f.readlines():
                         values=l.replace('\n','').split(',')
@@ -186,14 +186,14 @@ class EducationDataset(data.Dataset):
                 
                 #print(person)
                 person=list(person.values())
-                if len(person)>num_boxes or len(person)==0:
+                if len(person)>num_boxes or len(person)<=1:
                     continue
                 
                 if len(selected_frames) != num_frames:
                     print('wrong frame number')
                     continue
 
-                print(len(person))
+                #print(len(person))
                 for i in range(len(person)):
                     person[i].sort(key=lambda v:int(v[0]))
 
@@ -220,10 +220,9 @@ class EducationDataset(data.Dataset):
                     bboxes_local=torch.from_numpy(bboxes_local).float()
 
                     images.append(seq_path+frame+'.png')
-                    activities.append(int(frame[-1])-1)
+                    activities.append(int(seq[-1])-1)
                     bboxes.append(bboxes_local.unsqueeze(0))
-                    if frame==selected_frames[0] or frame==selected_frames[-1]:
-                        local_pos_mat.append(get_pos_mat(bboxes_local,num_boxes).unsqueeze(0))
+                    local_pos_mat.append(get_pos_mat(bboxes_local,num_boxes).unsqueeze(0))
 
                 local_tmp_mat=[]
                 for person in range(bboxes_num[-1]):
@@ -233,6 +232,7 @@ class EducationDataset(data.Dataset):
                     local_tmp_mat.append(torch.zeros((num_frames,num_frames,1,10)))
 
                 pos_mat.append(torch.concat(local_pos_mat,0).unsqueeze(0))
+                #print(pos_mat[-1].shape)
                 tmp_mat.append(torch.concat(local_tmp_mat,2).unsqueeze(0))
 
             croped_len=len(images)-len(images)%num_frames
@@ -244,12 +244,19 @@ class EducationDataset(data.Dataset):
         
         #bboxes=np.array(bboxes,dtype=float)
         #bboxes=torch.from_numpy(bboxes).float()
-        print(len(bboxes),len(pos_mat))
+        print(len(bboxes),len(pos_mat),len(videos))
         bboxes=torch.concat(bboxes,0)
         pos_mat=torch.concat(pos_mat,0)
         tmp_mat=torch.concat(tmp_mat,0)
         print("bboxes",bboxes.shape)
         print("pos_mat",pos_mat.shape)
+
+        activity_cnt=[0,0,0,0,0]
+        for i in range(len(activities)):
+            activity=activities[i]
+            #print(activity)
+            activity_cnt[activity]+=1
+        print("activity count:",activity_cnt)
         
         self.images=images
         self.activities=activities

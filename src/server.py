@@ -81,6 +81,9 @@ class Server(object):
 
         
         self.model=Dynamic_collective(self.cfg)
+
+        self.best=None
+        self.best_epoch=None
         
     def setup(self, **init_kwargs):
         """Set up all configuration for federated learning."""
@@ -296,6 +299,10 @@ class Server(object):
         epoch_timer=Timer()
 
         test_loss, correct = 0, 0
+
+        class_corr=[0,0,0,0,0]
+        class_total=[0,0,0,0,0]
+
         with torch.no_grad():
             for batch_data in self.dataloader:
                 # prepare batch data
@@ -315,9 +322,18 @@ class Server(object):
                 # Predict activities
                 activities_loss=F.cross_entropy(activities_scores,activities_in)
                 activities_labels=torch.argmax(activities_scores,dim=1)  #B,
-                activities_correct=torch.sum(torch.eq(activities_labels.int(),activities_in.int()).float())
+                activities_eq=torch.eq(activities_labels.int(),activities_in.int()).float()
+                activities_correct=torch.sum(activities_eq)
                 activities_accuracy=activities_correct.item()/activities_scores.shape[0]
                 activities_meter.update(activities_accuracy, activities_scores.shape[0])
+
+                for b in range(batch_size):
+                    class_=int(activities_in[b])
+                    class_total[class_]+=1
+                    '''if activities_eq[b]!=0:
+                        class_corr[class_]+=1'''
+                    class_corr[class_]+=activities_eq[b]
+
                 #activities_conf.add(activities_labels, activities_in)
 
                 # Total loss
@@ -326,6 +342,9 @@ class Server(object):
                 
                 if self.device == "cuda": torch.cuda.empty_cache()
         self.model.to("cpu")
+
+        class_acc=[ class_corr[i]/class_total[i] if class_total[i]!=0 else 0 for i in range(5)]
+        class_result=[f'class {i} {class_corr[i]}/{class_total[i]} {class_acc[i]}'for i in range(5)]
 
         test_info={
             'time':epoch_timer.timeit(),
@@ -336,6 +355,9 @@ class Server(object):
 
         print("global test")
         print(test_info)
+        for res in class_result:
+            print(res)
+
         return loss_meter.avg,activities_meter.avg*100
 
     def fit(self):
@@ -347,6 +369,12 @@ class Server(object):
             self.train_federated_model()
             test_loss, test_accuracy = self.evaluate_global_model()
             
+            if self.best==None or self.best<test_accuracy:
+                self.best=test_accuracy
+                self.best_epoch=self._round
+            
+            print(f"best accuracy:{self.best}% from epoch #{self.best_epoch}")
+
             self.results['loss'].append(test_loss)
             self.results['accuracy'].append(test_accuracy)
 
