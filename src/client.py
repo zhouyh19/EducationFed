@@ -1,3 +1,4 @@
+import copy
 import gc
 import pickle
 import logging
@@ -6,7 +7,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
-
+from utils import ScaffoldOptimizer
 from torch.utils.data import DataLoader
 
 from .utils import *
@@ -102,6 +103,118 @@ class Client(object):
                 optimizer.step()
 
                 if self.device == "cuda": torch.cuda.empty_cache()               
+        self.model.to("cpu")
+
+    def client_update_with_fedprox(self):
+        """Update local model using local dataset."""
+        inited_global_model = copy.deepcopy(self.model.state_dict())
+        self.model.train()
+        self.model.to(self.device)
+
+        print('lr:',self.cfg.train_learning_rate)
+        optimizer=optim.Adam(filter(lambda p: p.requires_grad, self.model.parameters()), \
+            lr=self.cfg.train_learning_rate,weight_decay=self.cfg.weight_decay)
+
+        for e in range(self.local_epoch):
+            print('epoch ',e)
+            for batch_data in self.dataloader:
+                batch_data=[b.to(device=self.device) for b in batch_data]
+                batch_size=batch_data[0].shape[0]
+                num_frames=batch_data[0].shape[1]
+                batch_data[0]=batch_data[0].contiguous()
+                #time.sleep(1200)
+                # forward
+                # actions_scores,activities_scores=model((batch_data[0],batch_data[1],batch_data[4]))
+
+                #print(batch_data[0].shape,batch_data[1].dtype,batch_data[3].dtype)
+                activities_scores = self.model((batch_data[0], batch_data[1], batch_data[3],batch_data[4],batch_data[5]))["activities"]
+                activities_in = batch_data[2].reshape((batch_size,num_frames))
+                bboxes_num = batch_data[3].reshape(batch_size,num_frames)
+                    
+                activities_in = activities_in[:,0].reshape(batch_size,)
+
+                # Predict activities
+                activities_loss=F.cross_entropy(activities_scores,activities_in)
+                activities_labels=torch.argmax(activities_scores,dim=1)  #B*T,
+                activities_correct=torch.sum(torch.eq(activities_labels.int(),activities_in.int()).float())
+                #print(activities_correct)
+                activities_accuracy=activities_correct.item()/activities_scores.shape[0]
+                #activities_meter.update(activities_accuracy, activities_scores.shape[0])
+                #activities_conf.add(activities_labels, activities_in)
+
+                # Total loss
+                total_loss = activities_loss # + cfg.actions_loss_weight*actions_loss
+                #loss_meter.update(total_loss.item(), batch_size)
+                # FedProx
+                fedprox_loss = 0
+                for (name, param) in self.model.named_parameters():
+                    fedprox_loss += self.cfg.mu/2 * torch.norm(param - inited_global_model[name])**2
+                total_loss += fedprox_loss
+
+                # Optim
+                optimizer.zero_grad()
+                total_loss.backward()
+                optimizer.step()
+
+                if self.device == "cuda": torch.cuda.empty_cache()
+        self.model.to("cpu")
+
+    def client_update_with_scaffold(self, nns):
+        """Update local model using local dataset."""
+        inited_global_model = copy.deepcopy(self.model)
+        self.model.train()
+        self.model.to(self.device)
+
+        print('lr:',self.cfg.train_learning_rate)
+        optimizer=ScaffoldOptimizer(filter(lambda p: p.requires_grad, self.model.parameters()),lr=self.cfg.train_learning_rate,weight_decay=self.cfg.weight_decay)
+
+        for e in range(self.local_epoch):
+            print('epoch ',e)
+            for batch_data in self.dataloader:
+                batch_data=[b.to(device=self.device) for b in batch_data]
+                batch_size=batch_data[0].shape[0]
+                num_frames=batch_data[0].shape[1]
+                batch_data[0]=batch_data[0].contiguous()
+                #time.sleep(1200)
+                # forward
+                # actions_scores,activities_scores=model((batch_data[0],batch_data[1],batch_data[4]))
+
+                #print(batch_data[0].shape,batch_data[1].dtype,batch_data[3].dtype)
+                activities_scores = self.model((batch_data[0], batch_data[1], batch_data[3],batch_data[4],batch_data[5]))["activities"]
+                activities_in = batch_data[2].reshape((batch_size,num_frames))
+                bboxes_num = batch_data[3].reshape(batch_size,num_frames)
+                    
+                activities_in = activities_in[:,0].reshape(batch_size,)
+
+                # Predict activities
+                activities_loss=F.cross_entropy(activities_scores,activities_in)
+                activities_labels=torch.argmax(activities_scores,dim=1)  #B*T,
+                activities_correct=torch.sum(torch.eq(activities_labels.int(),activities_in.int()).float())
+                #print(activities_correct)
+                activities_accuracy=activities_correct.item()/activities_scores.shape[0]
+                #activities_meter.update(activities_accuracy, activities_scores.shape[0])
+                #activities_conf.add(activities_labels, activities_in)
+
+                # Total loss
+                total_loss = activities_loss # + cfg.actions_loss_weight*actions_loss
+                #loss_meter.update(total_loss.item(), batch_size)
+
+                # Optim
+                optimizer.zero_grad()
+                total_loss.backward()
+                optimizer.step()
+
+                if self.device == "cuda": torch.cuda.empty_cache()
+        temp = {}
+        for k, v in self.model.named_parameters():
+            temp[k] = v.data.clone()
+        for k, v in inited_global_model.named_parameters():
+            local_steps = self.local_epoch * len(self.data)
+            self.model.control[k] = self.model.control[k] - nns.control[k] + (v.data - temp[k]) / (local_steps * self.cfg.train_learning_rate)
+            self.model.delta_y[k] = temp[k] - v.data
+            self.model.delta_control[k] = self.model.control[k] - inited_global_model.control[k]
+
+
         self.model.to("cpu")
 
     def client_evaluate(self):

@@ -84,6 +84,20 @@ class Server(object):
 
         self.best=None
         self.best_epoch=None
+
+        if self.cfg.mode == 'scaffold':
+            for k, v in self.model.named_parameters():
+                self.model.control[k] = torch.zeros_like(v.data)
+                self.model.delta_control[k] = torch.zeros_like(v.data)
+                self.model.delta_y[k] = torch.zeros_like(v.data)
+            self.nns = []
+            for i in range(self.num_clients):
+                temp = copy.deepcopy(self.model)
+                temp.control = copy.deepcopy(self.model.control)  # ci
+                temp.delta_control = copy.deepcopy(self.model.delta_control)  # ci
+                temp.delta_y = copy.deepcopy(self.model.delta_y)
+                self.nns.append(temp)
+
         
     def setup(self, **init_kwargs):
         """Set up all configuration for federated learning."""
@@ -218,6 +232,78 @@ class Server(object):
 
         return client_size
 
+    def update_selected_clients_with_fedprox(self, sampled_client_indices):
+        """Call "client_update_with_fedprox" function of each selected client."""
+        # update selected clients
+        message = f"[Round: {str(self._round).zfill(4)}] Start updating selected {len(sampled_client_indices)} clients...!"
+        print(message); logging.info(message)
+        del message; gc.collect()
+
+        round_begin=time.time()
+        selected_total_size = 0
+        for idx in tqdm(sampled_client_indices, leave=False):
+            self.clients[idx].client_update_with_fedprox(self.model)
+            selected_total_size += len(self.clients[idx])
+        
+
+        message = f"[Round: {str(self._round).zfill(4)}] ...{len(sampled_client_indices)} clients are selected and updated (with total sample size: {str(selected_total_size)})! Time: {time.time()-round_begin}sec"
+        print(message); logging.info(message)
+        del message; gc.collect()
+
+        return selected_total_size
+
+    def mp_update_selected_clients_with_fedprox(self, selected_index):
+        """Multiprocessing-applied version of "update_selected_clients_with_fedprox" method."""
+        # update selected clients
+        message = f"[Round: {str(self._round).zfill(4)}] Start updating selected client {str(self.clients[selected_index].id).zfill(4)}...!"
+        print(message, flush=True); logging.info(message)
+        del message; gc.collect()
+
+        self.clients[selected_index].client_update_with_fedprox(self.model)
+        client_size = len(self.clients[selected_index])
+
+        message = f"[Round: {str(self._round).zfill(4)}] ...client {str(self.clients[selected_index].id).zfill(4)} is selected and updated (with total sample size: {str(client_size)})!"
+        print(message, flush=True); logging.info(message)
+        del message; gc.collect()
+
+        return client_size
+
+    def update_selected_clients_with_scaffold(self, sampled_client_indices):
+        """Call "client_update_with_scaffold" function of each selected client."""
+        # update selected clients
+        message = f"[Round: {str(self._round).zfill(4)}] Start updating selected {len(sampled_client_indices)} clients...!"
+        print(message); logging.info(message)
+        del message; gc.collect()
+
+        round_begin=time.time()
+        selected_total_size = 0
+        for idx in tqdm(sampled_client_indices, leave=False):
+            self.clients[idx].client_update_with_scaffold(self.nns[idx], self.model)
+            selected_total_size += len(self.clients[idx])
+        
+
+        message = f"[Round: {str(self._round).zfill(4)}] ...{len(sampled_client_indices)} clients are selected and updated (with total sample size: {str(selected_total_size)})! Time: {time.time()-round_begin}sec"
+        print(message); logging.info(message)
+        del message; gc.collect()
+
+        return selected_total_size
+    
+    def mp_update_selected_clients_with_scaffold(self, selected_index):
+        """Multiprocessing-applied version of "update_selected_clients_with_scaffold" method."""
+        # update selected clients
+        message = f"[Round: {str(self._round).zfill(4)}] Start updating selected client {str(self.clients[selected_index].id).zfill(4)}...!"
+        print(message, flush=True); logging.info(message)
+        del message; gc.collect()
+
+        self.clients[selected_index].client_update_with_scaffold(self.nns[selected_index], self.model)
+        client_size = len(self.clients[selected_index])
+
+        message = f"[Round: {str(self._round).zfill(4)}] ...client {str(self.clients[selected_index].id).zfill(4)} is selected and updated (with total sample size: {str(client_size)})!"
+        print(message, flush=True); logging.info(message)
+        del message; gc.collect()
+
+        return client_size
+
     def average_model(self, sampled_client_indices, coefficients):
         """Average the updated and transmitted parameters from each selected client."""
         message = f"[Round: {str(self._round).zfill(4)}] Aggregate updated weights of {len(sampled_client_indices)} clients...!"
@@ -238,6 +324,34 @@ class Server(object):
         print(message); logging.info(message)
         del message; gc.collect()
     
+    def average_model_with_scaffold(self, sampled_client_indices, coefficients):
+        """Average the updated and transmitted parameters from each selected client."""
+        message = f"[Round: {str(self._round).zfill(4)}] Aggregate updated weights of {len(sampled_client_indices)} clients...!"
+        print(message); logging.info(message)
+        del message; gc.collect()
+
+        # compute
+        x = {}
+        c = {}
+        # init
+        for k, v in self.nns[0].named_parameters():
+            x[k] = torch.zeros_like(v.data)
+            c[k] = torch.zeros_like(v.data)
+
+        for j in sampled_client_indices:
+            for k, v in self.nns[j].named_parameters():
+                x[k] += self.nns[j].delta_y[k] / len(sampled_client_indices)  # averaging
+                c[k] += self.nns[j].delta_control[k] / len(sampled_client_indices)  # averaging
+
+        # update x and c
+        for k, v in self.model.named_parameters():
+            v.data += x[k].data  # lr=1
+            self.model.control[k].data += c[k].data * (len(sampled_client_indices) / self.num_clients)
+
+        message = f"[Round: {str(self._round).zfill(4)}] ...updated weights of {len(sampled_client_indices)} clients are successfully averaged!"
+        print(message); logging.info(message)
+        del message; gc.collect()
+
     def evaluate_selected_models(self, sampled_client_indices):
         """Call "client_evaluate" function of each selected client."""
         message = f"[Round: {str(self._round).zfill(4)}] Evaluate selected {str(len(sampled_client_indices))} clients' models...!"
@@ -265,12 +379,21 @@ class Server(object):
         self.transmit_model(sampled_client_indices)
 
         # updated selected clients with local dataset
-        if self.mp_flag:
-            with pool.ThreadPool(processes=cpu_count() - 1) as workhorse:
-                selected_total_size = workhorse.map(self.mp_update_selected_clients, sampled_client_indices)
-            selected_total_size = sum(selected_total_size)
-        else:
-            selected_total_size = self.update_selected_clients(sampled_client_indices)
+        if self.cfg.mode == "fedavg":
+            if self.mp_flag:
+                with pool.ThreadPool(processes=cpu_count() - 1) as workhorse:
+                    selected_total_size = workhorse.map(self.mp_update_selected_clients, sampled_client_indices)
+                selected_total_size = sum(selected_total_size)
+            else:
+                selected_total_size = self.update_selected_clients(sampled_client_indices)
+
+        elif self.cfg.mode == "fedprox":
+            if self.mp_flag:
+                with pool.ThreadPool(processes=cpu_count() - 1) as workhorse:
+                    selected_total_size = workhorse.map(self.mp_update_selected_clients_with_fedprox, sampled_client_indices)
+                selected_total_size = sum(selected_total_size)
+            else:
+                selected_total_size = self.update_selected_clients_with_fedprox(sampled_client_indices)
 
         # evaluate selected clients with local dataset (same as the one used for local update)
         if self.mp_flag:
@@ -287,7 +410,12 @@ class Server(object):
         mixing_coefficients = [len(self.clients[idx]) / selected_total_size for idx in sampled_client_indices]
 
         # average each updated model parameters of the selected clients and update the global model
-        self.average_model(sampled_client_indices, mixing_coefficients)
+        if self.cfg.mode == "fedavg":
+            self.average_model(sampled_client_indices, mixing_coefficients)
+        elif self.cfg.mode == "fedprox":
+            self.average_model(sampled_client_indices, mixing_coefficients)
+        elif self.cfg.mode == "scaffold":
+            self.average_model_with_scaffold(sampled_client_indices, mixing_coefficients)
         
     def evaluate_global_model(self):
         """Evaluate the global model using the global holdout dataset (self.data)."""

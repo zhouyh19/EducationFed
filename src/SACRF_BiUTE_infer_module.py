@@ -6,7 +6,6 @@ from torchvision import models
 from thop import profile, clever_format
 
 import math
-from fvcore.nn import flop_count, parameter_count
 
 from .config import Config
 from .utils import print_log,MAC2FLOP

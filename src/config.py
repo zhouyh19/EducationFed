@@ -134,4 +134,5 @@ class Config(object):
         self.log_path='result/%s/log.txt'%self.exp_name
             
         if need_new_folder:
-            os.mkdir(self.result_path)
+            if not os.path.exists(self.result_path):
+                os.makedirs(self.result_path)

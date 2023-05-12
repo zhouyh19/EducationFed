@@ -6,8 +6,6 @@ from thop import profile, clever_format
 
 from torchvision import models
 
-from roi_align.roi_align import RoIAlign
-from fvcore.nn import activation_count, flop_count, parameter_count, parameter_count_table
 import numpy as np
 
 from .gcn_model import GCN_Module

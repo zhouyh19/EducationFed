@@ -2,7 +2,6 @@ import torch.nn as nn
 import torch
 import torch.nn.functional as F
 import numpy as np
-import cv2
 
 import math
 from thop import profile, clever_format
