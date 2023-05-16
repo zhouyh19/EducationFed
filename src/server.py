@@ -80,7 +80,7 @@ class Server(object):
         self.optim_config = optim_config
 
         
-        self.model=Dynamic_collective(self.cfg)
+        self.model=Dynamic_collective(self.cfg) #set model here
 
         self.best=None
         self.best_epoch=None

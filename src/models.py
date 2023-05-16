@@ -445,3 +445,419 @@ class Dynamic_collective(nn.Module):
         activities_scores = torch.cat(activities_scores, dim=0)  # B,acty_num
 
         return {'activities':activities_scores}# activities_scores # actions_scores,
+
+class Dynamic_volleyball(nn.Module):
+    """
+    main module of GCN for the volleyball dataset
+    """
+    def __init__(self, cfg):
+        super(Dynamic_volleyball, self).__init__()
+        self.cfg=cfg
+        
+        T, N=self.cfg.num_frames, self.cfg.num_boxes
+        D=self.cfg.emb_features
+        K=self.cfg.crop_size[0]
+        NFB=self.cfg.num_features_boxes
+        NFR, NFG=self.cfg.num_features_relation, self.cfg.num_features_gcn
+        NG=self.cfg.num_graph
+        
+        
+        if cfg.backbone=='inv3':
+            self.backbone=MyInception_v3(transform_input=False, pretrained=True)
+        elif cfg.backbone=='vgg16':
+            self.backbone=MyVGG16(pretrained = True)
+        elif cfg.backbone=='vgg19':
+            self.backbone=MyVGG19(pretrained = True)
+        elif cfg.backbone == 'res18':
+            self.backbone = MyRes18(pretrained = True)
+        elif cfg.backbone == 'alex':
+            self.backbone = MyAlex(pretrained=True)
+        else:
+            assert False
+        
+        if not cfg.train_backbone:
+            for p in self.backbone.parameters():
+                p.requires_grad=False
+        
+        self.roi_align = RoIAlign(*self.cfg.crop_size)
+        # self.avgpool_person = nn.AdaptiveAvgPool2d((1,1))
+        self.fc_emb_1 = nn.Linear(K*K*D,NFB)
+        self.nl_emb_1 = nn.LayerNorm([NFB])
+        
+        
+        #self.gcn_list = torch.nn.ModuleList([ GCN_Module(self.cfg)  for i in range(self.cfg.gcn_layers) ])
+        if self.cfg.lite_dim:
+            in_dim = self.cfg.lite_dim
+            print_log(cfg.log_path, 'Activate lite model inference.')
+        else:
+            in_dim = NFB
+            print_log(cfg.log_path, 'Deactivate lite model inference.')
+
+        if not self.cfg.hierarchical_inference:
+            # self.DPI = Dynamic_Person_Inference(
+            #     in_dim = in_dim,
+            #     person_mat_shape = (10, 12),
+            #     stride = cfg.stride,
+            #     kernel_size = cfg.ST_kernel_size,
+            #     dynamic_sampling=cfg.dynamic_sampling,
+            #     sampling_ratio = cfg.sampling_ratio, # [1,2,4]
+            #     group = cfg.group,
+            #     scale_factor = cfg.scale_factor,
+            #     beta_factor = cfg.beta_factor,
+            #     parallel_inference = cfg.parallel_inference,
+            #     cfg = cfg)
+            self.DPI = Multi_Dynamic_Inference(
+                in_dim = in_dim,
+                person_mat_shape = (10, 12),
+                stride = cfg.stride,
+                kernel_size = cfg.ST_kernel_size,
+                dynamic_sampling=cfg.dynamic_sampling,
+                sampling_ratio = cfg.sampling_ratio, # [1,2,4]
+                group = cfg.group,
+                scale_factor = cfg.scale_factor,
+                beta_factor = cfg.beta_factor,
+                parallel_inference = cfg.parallel_inference,
+                num_DIM = cfg.num_DIM,
+                cfg = cfg)
+            print_log(cfg.log_path, 'Hierarchical Inference : ' + str(cfg.hierarchical_inference))
+        else:
+            self.DPI = Hierarchical_Dynamic_Inference(
+                in_dim = in_dim,
+                person_mat_shape=(10, 12),
+                stride=cfg.stride,
+                kernel_size=cfg.ST_kernel_size,
+                dynamic_sampling=cfg.dynamic_sampling,
+                sampling_ratio=cfg.sampling_ratio,  # [1,2,4]
+                group=cfg.group,
+                scale_factor=cfg.scale_factor,
+                beta_factor=cfg.beta_factor,
+                parallel_inference=cfg.parallel_inference,
+                cfg = cfg,)
+            print(cfg.log_path, 'Hierarchical Inference : ' + str(cfg.hierarchical_inference))
+        self.dpi_nl = nn.LayerNorm([T, N, in_dim])
+        self.dropout_global = nn.Dropout(p=self.cfg.train_dropout_prob)
+
+
+        # Lite Dynamic inference
+        if self.cfg.lite_dim:
+            self.point_conv = nn.Conv2d(NFB, in_dim, kernel_size = 1, stride = 1)
+            self.point_ln = nn.LayerNorm([T, N, in_dim])
+            self.fc_activities = nn.Linear(in_dim, self.cfg.num_activities)
+        else:
+            self.fc_activities=nn.Linear(NFG, self.cfg.num_activities)
+
+        for m in self.modules():
+            if isinstance(m,nn.Linear):
+                nn.init.kaiming_normal_(m.weight)
+                if m.bias is not None:
+                    nn.init.zeros_(m.bias)
+                    
+                    
+    def loadmodel(self,filepath):
+        state = torch.load(filepath)
+        self.backbone.load_state_dict(state['backbone_state_dict'])
+        self.fc_emb_1.load_state_dict(state['fc_emb_state_dict'])
+        print('Load model states from: ', filepath)
+
+    def loadpart(self, pretrained_state_dict, model, prefix):
+        num = 0
+        model_state_dict = model.state_dict()
+        pretrained_in_model = collections.OrderedDict()
+        for k,v in pretrained_state_dict.items():
+            if k.replace(prefix, '') in model_state_dict:
+                pretrained_in_model[k.replace(prefix, '')] = v
+                num +=1
+        model_state_dict.update(pretrained_in_model)
+        model.load_state_dict(model_state_dict)
+        print(str(num)+' parameters loaded for '+prefix)
+
+
+    def forward(self,batch_data):
+        images_in, boxes_in = batch_data
+        
+        # read config parameters
+        B = images_in.shape[0]
+        T = images_in.shape[1]
+        H, W=self.cfg.image_size
+        OH, OW=self.cfg.out_size
+        N=self.cfg.num_boxes
+        
+        # Reshape the input data
+        images_in_flat=torch.reshape(images_in,(B*T,3,H,W))  #B*T, 3, H, W
+        boxes_in_flat=torch.reshape(boxes_in,(B*T*N,4))  #B*T*N, 4
+
+        boxes_idx=[i * torch.ones(N, dtype=torch.int)   for i in range(B*T) ]
+        boxes_idx=torch.stack(boxes_idx).to(device=boxes_in.device)  # B*T, N
+        boxes_idx_flat=torch.reshape(boxes_idx,(B*T*N,))  #B*T*N,
+        
+        # Use backbone to extract features of images_in
+        # Pre-precess first
+        images_in_flat = prep_images(images_in_flat)
+        outputs = self.backbone(images_in_flat)
+
+        # Build  features
+        assert outputs[0].shape[2:4]==torch.Size([OH,OW])
+        features_multiscale=[]
+        for features in outputs:
+            if features.shape[2:4]!=torch.Size([OH,OW]):
+                features=F.interpolate(features,size=(OH,OW),mode='bilinear',align_corners=True)
+            features_multiscale.append(features)
+        
+        features_multiscale=torch.cat(features_multiscale,dim=1)  #B*T, D, OH, OW
+        
+        
+        # RoI Align
+        boxes_in_flat.requires_grad=False
+        boxes_idx_flat.requires_grad=False
+        boxes_features=self.roi_align(features_multiscale,
+                                            boxes_in_flat,
+                                            boxes_idx_flat)  #B*T*N, D, K, K,
+        boxes_features=boxes_features.reshape(B,T,N,-1)  #B,T,N, D*K*K
+
+        # Embedding 
+        boxes_features=self.fc_emb_1(boxes_features)  # B,T,N, NFB
+        boxes_features=self.nl_emb_1(boxes_features)
+        boxes_features=F.relu(boxes_features, inplace = True)
+
+        if self.cfg.lite_dim:
+            boxes_features = boxes_features.permute(0, 3, 1, 2)
+            boxes_features = self.point_conv(boxes_features)
+            boxes_features = boxes_features.permute(0, 2, 3, 1)
+            boxes_features = self.point_ln(boxes_features)
+            boxes_features = F.relu(boxes_features, inplace = True)
+        else:
+            None
+
+        # Dynamic graph inference
+        # graph_boxes_features = self.DPI(boxes_features)
+        graph_boxes_features, ft_infer_MAD = self.DPI(boxes_features)
+        torch.cuda.empty_cache()
+
+
+        if self.cfg.backbone == 'res18':
+            graph_boxes_features = graph_boxes_features.reshape(B, T, N, -1)
+            graph_boxes_features = self.dpi_nl(graph_boxes_features)
+            graph_boxes_features = F.relu(graph_boxes_features, inplace=True)
+            boxes_features = boxes_features.reshape(B, T, N, -1)
+            boxes_states = graph_boxes_features + boxes_features
+            boxes_states = self.dropout_global(boxes_states)
+        elif self.cfg.backbone == 'vgg16':
+            graph_boxes_features = graph_boxes_features.reshape(B, T, N, -1)
+            boxes_features = boxes_features.reshape(B, T, N, -1)
+            boxes_states = graph_boxes_features + boxes_features
+            boxes_states = self.dpi_nl(boxes_states)
+            boxes_states = F.relu(boxes_states, inplace = True)
+            boxes_states = self.dropout_global(boxes_states)
+
+
+        # Predict actions
+        # boxes_states_flat=boxes_states.reshape(-1,NFS)  #B*T*N, NFS
+        # actions_scores=self.fc_actions(boxes_states_flat)  #B*T*N, actn_num
+        
+        # Predict activities
+        boxes_states_pooled, _ = torch.max(boxes_states,dim=2)
+        boxes_states_pooled_flat = boxes_states_pooled.reshape(B*T, -1)
+        activities_scores = self.fc_activities(boxes_states_pooled_flat)  #B*T, acty_num
+        
+        # Temporal fusion
+        # actions_scores = actions_scores.reshape(B,T,N,-1)
+        # actions_scores = torch.mean(actions_scores,dim=1).reshape(B*N,-1)
+        activities_scores = activities_scores.reshape(B, T, -1)
+        activities_scores = torch.mean(activities_scores,dim=1).reshape(B,-1)
+
+        return {'activities':activities_scores} # actions_scores, activities_scores
+
+
+class CrossInferBlock(nn.Module):
+    def __init__(self, in_dim, Temporal, Spatial):
+        super(CrossInferBlock, self).__init__()
+        latent_dim = in_dim//2
+        field = Temporal + Spatial
+
+        self.theta = nn.Linear(in_dim, latent_dim, bias = False)
+        self.phi = nn.Linear(in_dim, latent_dim, bias = False)
+        self.fun_g = nn.Linear(in_dim, latent_dim, bias = False)
+        self.W = nn.Linear(latent_dim, in_dim, bias = False)
+        self.bn = nn.BatchNorm2d(in_dim)
+        # self.embedding = nn.Linear(in_dim, latent_dim, bias = True)
+
+        for m in self.modules():
+            if isinstance(m, nn.Linear):
+                nn.init.kaiming_normal_(m.weight)
+                if m.bias is not None:
+                    nn.init.zeros_(m.bias)
+
+    def forward(self, x):
+        '''
+        :param x: shape [B, T, N, NFB]
+        :return:
+        '''
+        B, T, N, NFB = x.shape
+        newx = x.clone()
+        for i in range(T):
+            for j in range(N):
+                x_ij = x[:, i, j, :] # [B, NFB]
+                embed_x_ij = self.theta(x_ij).unsqueeze(dim = 2) # [B, NFB//2, 1]
+
+                # Spatial
+                spatio_x = x[:,i] # [B, N, NFB]
+                g_spatial = self.fun_g(spatio_x)
+                phi_spatio_x = self.phi(spatio_x) # [B, N, NFB//2]
+                    # Original paper does not use softmax, thus we stick to it
+                sweight = torch.bmm(phi_spatio_x, embed_x_ij).squeeze(dim = 2) # [B,N]
+                n = len(sweight[0,:])
+                spatio_info = torch.einsum('ij,ijk->ik', sweight/n, g_spatial)
+
+                # Temporal
+                temporal_x = x[:,:,j]
+                g_temporal = self.fun_g(temporal_x)
+                embed_temporal_x = self.phi(temporal_x)
+                    # Original paper does not use softmax, thus we stick to it
+                tweight = torch.bmm(embed_temporal_x, embed_x_ij).squeeze(dim = 2)
+                n = len(tweight[0,:])
+                temporal_info = torch.einsum('ij,ijk->ik', tweight/n, g_temporal)
+
+                ST_info = (spatio_info + temporal_info)/(T+N)
+                res_ST_info = self.W(ST_info) + x_ij
+                newx[:,i,j,:] = res_ST_info
+
+        newx = newx.permute(0, 3, 1, 2)
+        newx = self.bn(newx)
+        newx = newx.permute(0, 2, 3, 1)
+
+        return newx
+
+def MAC2FLOP(macs, params, module_name = ''):
+    macs, params = clever_format([macs, params], "%.3f")
+    print('{} MACs: {}  #Params: {}'.format(module_name, macs, params))
+    if 'M' in macs:
+        flops = float(macs.replace('M', '')) * 2
+        flops = str(flops/1000) + 'G'
+    elif 'G' in macs:
+        flops = str(float(macs.replace('G', '')) * 2) + 'G'
+    print('{} GFLOPs: {}  #Params: {}'.format(module_name, flops, params))
+
+
+class HiGCIN_volleyball(nn.Module):
+    """
+    main module of GCN for the volleyball dataset
+    """
+
+    def __init__(self, cfg):
+        super(HiGCIN_volleyball, self).__init__()
+        self.cfg = cfg
+
+        T, N = self.cfg.num_frames, self.cfg.num_boxes
+        D = self.cfg.emb_features
+        K = self.cfg.crop_size[0]
+        NFB = self.cfg.num_features_boxes
+        NFR, NFG = self.cfg.num_features_relation, self.cfg.num_features_gcn
+        NG = self.cfg.num_graph
+
+        if cfg.backbone == 'inv3':
+            self.backbone = MyInception_v3(transform_input=False, pretrained=True)
+        elif cfg.backbone == 'vgg16':
+            self.backbone = MyVGG16(pretrained=True)
+        elif cfg.backbone == 'vgg19':
+            self.backbone = MyVGG19(pretrained=True)
+        elif cfg.backbone == 'res18':
+            self.backbone = MyRes18(pretrained=True)
+        elif cfg.backbone == 'alex':
+            self.backbone = MyAlex(pretrained=True)
+        else:
+            assert False
+
+        if not cfg.train_backbone:
+            for p in self.backbone.parameters():
+                p.requires_grad = False
+
+        self.roi_align = RoIAlign(*self.cfg.crop_size)
+        self.person_avg_pool = nn.AvgPool2d((K**2, 1), stride = 1)
+        self.BIM = CrossInferBlock(in_dim = D, Temporal = T, Spatial = K**2)
+        self.PIM = CrossInferBlock(in_dim = D, Temporal = T, Spatial = N)
+        self.dropout = nn.Dropout()
+        self.fc_activities = nn.Linear(D, cfg.num_activities, bias = False)
+
+        for m in self.modules():
+            if isinstance(m, nn.Linear):
+                nn.init.kaiming_normal_(m.weight)
+                if m.bias is not None:
+                    nn.init.zeros_(m.bias)
+
+    def loadmodel(self, filepath):
+        state = torch.load(filepath)
+        self.backbone.load_state_dict(state['backbone_state_dict'])
+        # self.fc_emb_1.load_state_dict(state['fc_emb_state_dict'])
+        print('Load model states from: ', filepath)
+
+    def forward(self, batch_data):
+        images_in, boxes_in = batch_data
+
+        # read config parameters
+        B = images_in.shape[0]
+        T = images_in.shape[1]
+        H, W = self.cfg.image_size
+        OH, OW = self.cfg.out_size
+        N = self.cfg.num_boxes
+
+        D = self.cfg.emb_features
+        K = self.cfg.crop_size[0]
+
+
+        # Reshape the input data
+        images_in_flat = torch.reshape(images_in, (B * T, 3, H, W))  # B*T, 3, H, W
+        boxes_in_flat = torch.reshape(boxes_in, (B * T * N, 4))  # B*T*N, 4
+
+        boxes_idx = [i * torch.ones(N, dtype=torch.int) for i in range(B * T)]
+        boxes_idx = torch.stack(boxes_idx).to(device=boxes_in.device)  # B*T, N
+        boxes_idx_flat = torch.reshape(boxes_idx, (B * T * N,))  # B*T*N,
+
+        # Use backbone to extract features of images_in
+        # Pre-precess first
+        images_in_flat = prep_images(images_in_flat)
+        outputs = self.backbone(images_in_flat)
+
+        # Build  features
+        assert outputs[0].shape[2:4] == torch.Size([OH, OW])
+        features_multiscale = []
+        for features in outputs:
+            if features.shape[2:4] != torch.Size([OH, OW]):
+                features = F.interpolate(features, size=(OH, OW), mode='bilinear', align_corners=True)
+            features_multiscale.append(features)
+
+        features_multiscale = torch.cat(features_multiscale, dim=1)  # B*T, D, OH, OW
+
+        # RoI Align
+        boxes_in_flat.requires_grad = False
+        boxes_idx_flat.requires_grad = False
+        boxes_features = self.roi_align(features_multiscale,
+                                        boxes_in_flat,
+                                        boxes_idx_flat)  # B*T*N, D, K, K,
+        boxes_features = boxes_features.view(B, T, N, D, K*K)
+        boxes_features = boxes_features.permute(0, 2, 1, 4, 3).contiguous()
+        boxes_features = boxes_features.view(B*N, T, K*K, D) # B*N, T, K*K, D
+
+        # HiGCIN Inference
+        boxes_features = self.BIM(boxes_features) # B*N, T, K*K, D
+        boxes_features = self.person_avg_pool(boxes_features) # B*N, T, D
+        boxes_features = boxes_features.view(B, N, T, D).contiguous().permute(0, 2, 1, 3) # B, T, N, D
+        boxes_states = self.PIM(boxes_features) # B, T, N, D
+        boxes_states = self.dropout(boxes_states)
+        torch.cuda.empty_cache()
+
+        # Predict actions
+        # boxes_states_flat=boxes_states.reshape(-1,NFS)  #B*T*N, NFS
+        # actions_scores=self.fc_actions(boxes_states_flat)  #B*T*N, actn_num
+
+        # Predict activities
+        boxes_states_pooled, _ = torch.max(boxes_states, dim=2)
+        boxes_states_pooled_flat = boxes_states_pooled.reshape(B * T, -1)
+        activities_scores = self.fc_activities(boxes_states_pooled_flat)  # B*T, acty_num
+
+        # Temporal fusion
+        # actions_scores = actions_scores.reshape(B,T,N,-1)
+        # actions_scores = torch.mean(actions_scores,dim=1).reshape(B*N,-1)
+        activities_scores = activities_scores.reshape(B, T, -1)
+        activities_scores = torch.mean(activities_scores, dim=1).reshape(B, -1)
+
+        return {'activities':activities_scores}
