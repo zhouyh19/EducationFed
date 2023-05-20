@@ -296,6 +296,7 @@ class Server(object):
 
         activities_meter=AverageMeter()
         loss_meter=AverageMeter()
+        activities_conf = ConfusionMeter(cfg.num_activities)
         epoch_timer=Timer()
 
         test_loss, correct = 0, 0
@@ -334,7 +335,7 @@ class Server(object):
                         class_corr[class_]+=1'''
                     class_corr[class_]+=activities_eq[b]
 
-                #activities_conf.add(activities_labels, activities_in)
+                activities_conf.add(activities_labels, activities_in)
 
                 # Total loss
                 total_loss=activities_loss # + cfg.actions_loss_weight*actions_loss
@@ -350,7 +351,7 @@ class Server(object):
             'time':epoch_timer.timeit(),
             'loss':loss_meter.avg,
             'activities_acc':activities_meter.avg*100,
-            #'activities_MPCA': MPCA(activities_conf.value()),
+            'activities_MPCA': MPCA(activities_conf.value()),
         } #'actions_acc':actions_meter.avg*100
 
         print("global test")
