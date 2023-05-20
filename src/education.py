@@ -10,7 +10,7 @@ import numpy as np
 import os,json
 
 from collections import Counter
-
+from tqdm import tqdm
 
 FRAMES_NUM={1: 302, 2: 347, 3: 194, 4: 257, 5: 536, 6: 401, 7: 968, 8: 221, 9: 356, 10: 302, 
             11: 1813, 12: 1084, 13: 851, 14: 723, 15: 464, 16: 1021, 17: 905, 18: 600, 19: 203, 20: 342, 
@@ -154,8 +154,27 @@ class EducationDataset(data.Dataset):
         tmp_mat=[]
 
         videos=selected_files
+        # videos_t = []
         type_anno={}
-        for video in videos:
+        # for video in videos:
+        #     reverse = True
+        #     video_path=path+'/'+video+'/'
+        #     seqs=os.listdir(video_path)
+        #     for seq in seqs:
+        #         seq_path=video_path+seq+'/'
+        #         frames=os.listdir(seq_path)
+        #         if 'annotations.txt' not in frames:
+        #             print('no annotations.txt in',video_path)
+        #             reverse = False
+        #             break
+        #     if reverse:
+        #         videos_t.append(video)
+        # videos = videos_t
+        # print(videos)
+        # for bebug
+        videos = videos[:len(videos)//10 + 1]
+        #
+        for video in tqdm(videos):
             video_path=path+'/'+video+'/'
             seqs=os.listdir(video_path)
 

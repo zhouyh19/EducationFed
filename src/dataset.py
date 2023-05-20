@@ -47,13 +47,13 @@ def return_dataset(cfg,num_clients):
     train_videos.extend(undecided_videos[:split])
     test_videos.extend(undecided_videos[split:])
     print(train_videos)
-    print(test_videos)
+    print(test_videos)'''
     
-    #test_videos=random.sample(seqs,max(len(seqs)//5,1))
-    with open('test_samples.txt','w') as f: 
-        for video in test_videos:
-            f.write(video+'\n')'''
-    
+    # test_videos=random.sample(videos,max(len(videos)//5,1))
+    # with open('test_samples.txt','w') as f: 
+    #     for video in test_videos:
+    #         f.write(video+'\n')
+
     with open('test_samples.txt','r') as f: 
         test_videos=f.readlines()
     test_videos=[seq.replace('\n','') for seq in test_videos]
@@ -75,7 +75,7 @@ def return_dataset(cfg,num_clients):
     validation_set=EducationDataset(cfg.data_path,test_videos,img_path,\
         cfg.num_frames,cfg.image_size,cfg.out_size,cfg.num_boxes)
 
-    #max_bboxes=max(bboxes_num_test)
+    max_bboxes=max(validation_set.bboxes_num)
 
     for i in range(num_clients):
 
@@ -94,9 +94,9 @@ def return_dataset(cfg,num_clients):
             cfg.num_frames,cfg.image_size,cfg.out_size,cfg.num_boxes)
         train_datasets.append(training_set)
         samples.append(len(training_set))
-        #max_bboxes=max(max_bboxes,max(bboxes_num_train))
+        max_bboxes=max(max_bboxes,max(training_set.bboxes_num))
         
-    #print("max bboxes:",max_bboxes)
+    print("max bboxes:",max_bboxes)
 
     
 

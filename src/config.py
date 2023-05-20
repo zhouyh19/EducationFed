@@ -11,7 +11,7 @@ class Config(object):
         
         # Dataset
         self.dataset_name='education'
-        self.data_path='../processed_new'
+        self.data_path='/DATA/DATANAS1/mty/processed_v2'
         
         # Backbone 
         self.crop_size = 5, 5  #crop size of roi align
@@ -54,7 +54,7 @@ class Config(object):
 
         self.inference_module_name = 'dynamic_collective'
 
-        self.device_list="0"
+        self.device_list="1"
         self.training_stage=2
         self.use_gpu = True
         self.use_multi_gpu = False
@@ -119,7 +119,6 @@ class Config(object):
 
         self.init_type = "xavier"
         self.init_gain= 1.0
-        self.gpu_ids= [0]
 
         self.exp_note='Dynamic_collective'
         self.init_config()

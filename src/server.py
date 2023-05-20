@@ -74,6 +74,7 @@ class Server(object):
         self.num_rounds = fed_config["R"]
         self.local_epochs = fed_config["E"]
         self.batch_size = fed_config["B"]
+        self.mode = fed_config["mode"]
 
         self.criterion = fed_config["criterion"]
         self.optimizer = fed_config["optimizer"]
@@ -85,7 +86,7 @@ class Server(object):
         self.best=None
         self.best_epoch=None
 
-        if self.cfg.mode == 'scaffold':
+        if self.mode == 'scaffold':
             for k, v in self.model.named_parameters():
                 self.model.control[k] = torch.zeros_like(v.data)
                 self.model.delta_control[k] = torch.zeros_like(v.data)
@@ -107,7 +108,8 @@ class Server(object):
 
         # initialize weights of the model
         torch.manual_seed(self.seed)
-        init_net(self.model, self.cfg.init_type, self.cfg.init_gain, self.cfg.gpu_ids)
+        self.model = self.model.to(self.device)
+        init_net(self.model, self.cfg.init_type, self.cfg.init_gain, [0, 1, 2, 3, 4, 5])
 
         message = f"[Round: {str(self._round).zfill(4)}] ...successfully initialized model (# parameters: {str(sum(p.numel() for p in self.model.parameters()))})!"
         print(message); logging.info(message)
@@ -242,7 +244,7 @@ class Server(object):
         round_begin=time.time()
         selected_total_size = 0
         for idx in tqdm(sampled_client_indices, leave=False):
-            self.clients[idx].client_update_with_fedprox(self.model)
+            self.clients[idx].client_update_with_fedprox()
             selected_total_size += len(self.clients[idx])
         
 
@@ -259,7 +261,7 @@ class Server(object):
         print(message, flush=True); logging.info(message)
         del message; gc.collect()
 
-        self.clients[selected_index].client_update_with_fedprox(self.model)
+        self.clients[selected_index].client_update_with_fedprox()
         client_size = len(self.clients[selected_index])
 
         message = f"[Round: {str(self._round).zfill(4)}] ...client {str(self.clients[selected_index].id).zfill(4)} is selected and updated (with total sample size: {str(client_size)})!"
@@ -379,7 +381,7 @@ class Server(object):
         self.transmit_model(sampled_client_indices)
 
         # updated selected clients with local dataset
-        if self.cfg.mode == "fedavg":
+        if self.mode == "fedavg":
             if self.mp_flag:
                 with pool.ThreadPool(processes=cpu_count() - 1) as workhorse:
                     selected_total_size = workhorse.map(self.mp_update_selected_clients, sampled_client_indices)
@@ -387,7 +389,7 @@ class Server(object):
             else:
                 selected_total_size = self.update_selected_clients(sampled_client_indices)
 
-        elif self.cfg.mode == "fedprox":
+        elif self.mode == "fedprox":
             if self.mp_flag:
                 with pool.ThreadPool(processes=cpu_count() - 1) as workhorse:
                     selected_total_size = workhorse.map(self.mp_update_selected_clients_with_fedprox, sampled_client_indices)
@@ -410,11 +412,11 @@ class Server(object):
         mixing_coefficients = [len(self.clients[idx]) / selected_total_size for idx in sampled_client_indices]
 
         # average each updated model parameters of the selected clients and update the global model
-        if self.cfg.mode == "fedavg":
+        if self.mode == "fedavg":
             self.average_model(sampled_client_indices, mixing_coefficients)
-        elif self.cfg.mode == "fedprox":
+        elif self.mode == "fedprox":
             self.average_model(sampled_client_indices, mixing_coefficients)
-        elif self.cfg.mode == "scaffold":
+        elif self.mode == "scaffold":
             self.average_model_with_scaffold(sampled_client_indices, mixing_coefficients)
         
     def evaluate_global_model(self):

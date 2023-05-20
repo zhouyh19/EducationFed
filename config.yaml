@@ -1,10 +1,10 @@
 global_config:
   seed: 5959
-  device: "cuda"
+  device: "cuda:0"
   is_mp: False
 ---
 data_config:
-  data_path: "../processed"
+  data_path: "/DATA/DATANAS1/mty/processed_v2"
   dataset_name: "MNIST"
   num_shards: 200
   iid: False
@@ -17,6 +17,7 @@ fed_config:
   B: 2
   criterion: torch.nn.CrossEntropyLoss
   optimizer: torch.optim.SGD
+  mode: "fedavg"
 ---
 optim_config:
   lr: 5.0e-7
@@ -26,7 +27,6 @@ optim_config:
 init_config:
   init_type: "xavier"
   init_gain: 1.0
-  gpu_ids: [0]
 ---
 model_config: 
   #name: TwoNN

@@ -99,10 +99,10 @@ def init_net(model, init_type, init_gain, gpu_ids):
     Returns:
         An initialized torch.nn.Module instance.
     """
-    '''if len(gpu_ids) > 0:
-        assert(torch.cuda.is_available())
-        model.to(gpu_ids[0])
-        model = nn.DataParallel(model, gpu_ids)'''
+    # if len(gpu_ids) > 0:
+    #     assert(torch.cuda.is_available())
+    #     model.to(gpu_ids[0])
+    #     model = nn.DataParallel(model, gpu_ids)
     init_weights(model, init_type, init_gain)
     return model
 

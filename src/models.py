@@ -250,6 +250,9 @@ class Dynamic_collective(nn.Module):
         K = self.cfg.crop_size[0]
         NFB = self.cfg.num_features_boxes
         NFR, NFG = self.cfg.num_features_relation, self.cfg.num_features_gcn
+        self.control = {}
+        self.delta_y = {}
+        self.delta_control = {}
 
         if cfg.backbone == 'inv3':
             self.backbone = MyInception_v3(transform_input=False, pretrained=True)

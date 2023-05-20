@@ -7,7 +7,6 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
-from utils import ScaffoldOptimizer
 from torch.utils.data import DataLoader
 
 from .utils import *
@@ -159,14 +158,14 @@ class Client(object):
                 if self.device == "cuda": torch.cuda.empty_cache()
         self.model.to("cpu")
 
-    def client_update_with_scaffold(self, nns):
+    def client_update_with_scaffold(self, nns, server):
         """Update local model using local dataset."""
-        inited_global_model = copy.deepcopy(self.model)
-        self.model.train()
-        self.model.to(self.device)
+        inited_global_model = copy.deepcopy(nns)
+        nns.train()
+        nns.to(self.device)
 
         print('lr:',self.cfg.train_learning_rate)
-        optimizer=ScaffoldOptimizer(filter(lambda p: p.requires_grad, self.model.parameters()),lr=self.cfg.train_learning_rate,weight_decay=self.cfg.weight_decay)
+        optimizer=ScaffoldOptimizer(filter(lambda p: p.requires_grad, nns.parameters()),lr=self.cfg.train_learning_rate,weight_decay=self.cfg.weight_decay)
 
         for e in range(self.local_epoch):
             print('epoch ',e)
@@ -180,7 +179,7 @@ class Client(object):
                 # actions_scores,activities_scores=model((batch_data[0],batch_data[1],batch_data[4]))
 
                 #print(batch_data[0].shape,batch_data[1].dtype,batch_data[3].dtype)
-                activities_scores = self.model((batch_data[0], batch_data[1], batch_data[3],batch_data[4],batch_data[5]))["activities"]
+                activities_scores = nns((batch_data[0], batch_data[1], batch_data[3],batch_data[4],batch_data[5]))["activities"]
                 activities_in = batch_data[2].reshape((batch_size,num_frames))
                 bboxes_num = batch_data[3].reshape(batch_size,num_frames)
                     
@@ -206,13 +205,13 @@ class Client(object):
 
                 if self.device == "cuda": torch.cuda.empty_cache()
         temp = {}
-        for k, v in self.model.named_parameters():
+        for k, v in nns.named_parameters():
             temp[k] = v.data.clone()
         for k, v in inited_global_model.named_parameters():
             local_steps = self.local_epoch * len(self.data)
-            self.model.control[k] = self.model.control[k] - nns.control[k] + (v.data - temp[k]) / (local_steps * self.cfg.train_learning_rate)
-            self.model.delta_y[k] = temp[k] - v.data
-            self.model.delta_control[k] = self.model.control[k] - inited_global_model.control[k]
+            nns.control[k] = nns.control[k] - server.control[k] + (v.data - temp[k]) / (local_steps * self.cfg.train_learning_rate)
+            nns.delta_y[k] = temp[k] - v.data
+            nns.delta_control[k] = nns.control[k] - inited_global_model.control[k]
 
 
         self.model.to("cpu")
