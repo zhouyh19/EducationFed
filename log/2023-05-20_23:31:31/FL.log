@@ -8,3 +8,9 @@
 [INFO](2023/05/20/ 11:31:34 PM) {'model_config': {'name': 'CNN', 'in_channels': 1, 'hidden_channels': 32, 'num_hiddens': 512, 'num_classes': 10}}
 [INFO](2023/05/20/ 11:31:34 PM) {'log_config': {'log_path': './log/2023-05-20_23:31:31', 'log_name': 'FL.log', 'tb_port': 5252, 'tb_host': '0.0.0.0'}}
 [INFO](2023/05/20/ 11:31:39 PM) [Round: 0000] ...successfully initialized model (# parameters: 40764000)!
+[INFO](2023/05/21/ 12:47:02 AM) [Round: 0000] ...successfully created all 1 clients!
+[INFO](2023/05/21/ 12:47:02 AM) [Round: 0000] ...successfully finished setup of all 1 clients!
+[INFO](2023/05/21/ 12:47:02 AM) [Round: 0000] ...successfully transmitted models to all 1 clients!
+[INFO](2023/05/21/ 12:47:02 AM) [Round: 0001] Select clients...!
+[INFO](2023/05/21/ 12:47:02 AM) [Round: 0001] ...successfully transmitted models to 1 selected clients!
+[INFO](2023/05/21/ 12:47:02 AM) [Round: 0001] Start updating selected 1 clients...!
