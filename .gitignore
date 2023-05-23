@@ -1,0 +1,5 @@
+preprocessed/
+__pycache__/
+result/
+runs/
+.vscode/

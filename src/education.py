@@ -6,7 +6,7 @@ import torchvision.transforms as transforms
 import random,math
 from PIL import Image
 import numpy as np
-
+from tqdm import tqdm
 import os,json
 
 from collections import Counter
@@ -155,7 +155,7 @@ class EducationDataset(data.Dataset):
 
         videos=selected_files
         type_anno={}
-        for video in videos:
+        for video in tqdm(videos):
             video_path=path+'/'+video+'/'
             seqs=os.listdir(video_path)
 
@@ -172,18 +172,20 @@ class EducationDataset(data.Dataset):
                 #print(selected_frames)
 
                 #print('begin seq:',seq_path)
-                with open(seq_path+'annotations.txt',mode='r') as f:
-                    for l in f.readlines():
-                        values=l.replace('\n','').split(',')
-                        if values[0] not in selected_frames:
-                            #print('rejected:',values[0],selected_frames)
-                            continue
-                        #print('frame',values[0])
-                        if values[1] not in person:
-                            person[values[1]]=[]
-                        
-                        person[values[1]].append(values)
-                
+                try:
+                    with open(seq_path+'annotations.txt',mode='r') as f:
+                        for l in f.readlines():
+                            values=l.replace('\n','').split(',')
+                            if values[0] not in selected_frames:
+                                #print('rejected:',values[0],selected_frames)
+                                continue
+                            #print('frame',values[0])
+                            if values[1] not in person:
+                                person[values[1]]=[]
+                            
+                            person[values[1]].append(values)
+                except FileNotFoundError:
+                    continue
                 #print(person)
                 person=list(person.values())
                 if len(person)>num_boxes or len(person)<=1:
