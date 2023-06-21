@@ -77,6 +77,7 @@ def return_dataset(cfg,num_clients):
     idx=0
     train_datasets=[]
     samples=[]
+    validation_set=None
 
     '''images_test,activities_test,bboxes_test,bboxes_num_test,pos_mat_test= \
         education_read_annotations(cfg.data_path,test_videos,img_path,cfg.num_frames,cfg.out_size)'''

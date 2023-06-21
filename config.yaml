@@ -1,10 +1,10 @@
 global_config:
   seed: 5959
-  device: "cuda"
+  device: "cuda:3"
   is_mp: False
 ---
 data_config:
-  data_path: "../processed"
+  data_path: "/DATA/DATANAS1/mty/processed_v2"
   dataset_name: "MNIST"
   num_shards: 200
   iid: False

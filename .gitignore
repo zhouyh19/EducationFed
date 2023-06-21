@@ -2,3 +2,4 @@
 result/*
 log/*
 src/__pycache__/*
+runs/*
