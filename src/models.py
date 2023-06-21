@@ -190,6 +190,8 @@ class SpatioPositionalModule(nn.Module):
 
     def forward(self,batch_data,xywh,OW,OH,actor_weights,avg_pos,num_person):
 
+        #print(xywh[:num_person])
+        #print(OW,OH)
         
         highlight_pred=self.highlight_fc(batch_data)
         
@@ -216,6 +218,7 @@ class SpatioPositionalModule(nn.Module):
             highlight_pred_x[i]+=alpha*offset_x
             highlight_pred_y[i]+=alpha*offset_y'''
 
+
         
         '''x_avg,y_avg=torch.mean(highlight_pred_x,dim=-1),torch.mean(highlight_pred_y,dim=-1)
         x_avg,y_avg=x_avg.unsqueeze(-1),y_avg.unsqueeze(-1)
@@ -230,10 +233,19 @@ class SpatioPositionalModule(nn.Module):
         ent_loss=0
 
         for i in range(num_person):
+
+            if torch.sum(xywh[i])<1e-8:
+                    continue
+
             for j in range(num_person):
+                
+                if torch.sum(xywh[j])<1e-8:
+                    continue
+
                 dis=torch.sqrt((highlight_pred_x[i]-xywh[j][0])**2+(highlight_pred_y[i]-xywh[j][1])**2) 
                 weights[i][j]=1.0/(dis+1e-4)
-            weights[i]=torch.softmax(weights[i],-1)
+
+            weights[i]/=torch.sum(weights[i])#torch.softmax(weights[i],-1)
         
         #ent_loss+=calc_entropy(weights)
 
@@ -287,7 +299,7 @@ class SemPosBlock(nn.Module):
             #pos_result,agr_loss,offset=self.SpPos(person_features[i],xywh[i],OW,OH,actor_weights,avg_pos,num_person[i])
             #有时会导致梯度爆炸，仍需检查
             
-            result=vis_result
+            result=vis_result#+pos_result
             #result=#torch.concat((pos_result,vis_result),dim=-1) 
             results.append(result.unsqueeze(0))
 
