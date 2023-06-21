@@ -11,7 +11,7 @@ class Config(object):
         
         # Dataset
         self.dataset_name='education'
-        self.data_path='../processed_new'
+        self.data_path='../data/processed_v2'
         
         # Backbone 
         self.crop_size = 5, 5  #crop size of roi align
@@ -61,16 +61,23 @@ class Config(object):
         self.train_backbone = True
 
         # ResNet18
-        '''
-        self.backbone = 'res18'
-        self.image_size = 480, 720
-        self.out_size = 15, 23
-        self.emb_features = 512
-        self.stage1_model_path = 'result/basemodel_CAD_res18.pth'
-        '''
+        
+        '''self.backbone = 'res18'
+        #self.image_size = 480, 720
+        self.out_size = 23, 40
+        #self.out_size =15, 23
+        self.emb_features = 512'''
+        #self.stage1_model_path = 'result/basemodel_CAD_res18.pth'
+
+        self.backbone = 'inv3'
+        self.stage1_model_path = 'basemodel_VD_inv3.pth'
+        self.out_size = 87, 157
+        self.emb_features = 1056
+        
 
         self.load_backbone_stage2=False
         self.load_stage2model=False
+        self.train_temp=True
 
         # VGG16
         '''
@@ -83,10 +90,12 @@ class Config(object):
 
 
         
-        self.backbone = 'vgg19'
-        self.image_size = 480, 720
+        '''self.backbone = 'vgg19'
+        #self.image_size = 480, 720
         self.out_size = 15, 22
         self.emb_features = 512
+        0'''
+        self.image_size=720, 1280
 
         self.num_boxes = 40
         self.num_actions = 5
@@ -97,9 +106,10 @@ class Config(object):
         self.batch_size = 2
         self.test_batch_size = 8
         self.test_interval_epoch = 1
-        self.train_learning_rate = 5e-5
+        self.train_learning_rate = 1e-4
+        self.lr_plan = {11:3e-5,21:1e-5}
         self.momentum = 0.9
-        self.train_dropout_prob = 0.5
+        self.train_dropout_prob = 0.3
         self.weight_decay = 1e-4
         self.lr_plan = {}
         self.max_epoch = 50
@@ -151,30 +161,34 @@ class DIN_config(object):
         cfg.test_interval_epoch = 1
 
         # vgg16 setup
-        cfg.backbone = 'vgg16'
+        '''cfg.backbone = 'vgg16'
         cfg.stage1_model_path = 'result/basemodel_VD_vgg16.pth'
-        cfg.out_size = 22, 40
-        cfg.emb_features = 512
+        cfg.image_size = 480, 720
+        #cfg.out_size = 22, 40 
+        cfg.out_size = 15, 22
+        cfg.emb_features = 512'''
 
         # res18 setup
-        # cfg.backbone = 'res18'
-        # cfg.stage1_model_path = 'result/basemodel_VD_res18.pth'
-        # cfg.out_size = 23, 40
-        # cfg.emb_features = 512
+        cfg.backbone = 'res18'
+        cfg.stage1_model_path = 'result/basemodel_VD_res18.pth'
+        
+        cfg.out_size = 23, 40
+        #cfg.out_size =15, 23
+        cfg.emb_features = 512
 
         # Dynamic Inference setup
         cfg.group = 1
         cfg.stride = 1
-        cfg.ST_kernel_size = [(3, 3)] #[(3, 3),(3, 3),(3, 3),(3, 3)]
+        cfg.ST_kernel_size = (3, 3) #[(3, 3),(3, 3),(3, 3),(3, 3)]
         cfg.dynamic_sampling = True
         cfg.sampling_ratio = [1]
-        cfg.lite_dim = 128 # None # 128
+        cfg.lite_dim =  None # 128
         cfg.scale_factor = True
         cfg.beta_factor = False
         cfg.hierarchical_inference = False
         cfg.parallel_inference = False
         cfg.num_DIM = 1
-        cfg.train_dropout_prob = 0.3
+        cfg.train_dropout_prob = 0.5
 
         cfg.batch_size = 2
         cfg.test_batch_size = 1
@@ -243,3 +257,4 @@ class HIGCIN_config(object):
         cfg.actions_weights = [[1., 1., 2., 3., 1., 2., 2., 0.2, 1.]]
 
         cfg.exp_note = 'HiGCIN Volleyball_stage2'
+        self.cfg=cfg

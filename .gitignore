@@ -1,0 +1,4 @@
+*.pickle
+result/*
+log/*
+src/__pycache__/*

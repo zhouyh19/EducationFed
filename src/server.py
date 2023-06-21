@@ -58,7 +58,7 @@ class Server(object):
 
         #self.model = eval(model_config["name"])(**model_config)
         
-        self.cfg=Config()
+        self.cfg= Config() #DIN_config().cfg #HIGCIN_config().cfg 
         
         self.seed = global_config["seed"]
         self.device = global_config["device"]
@@ -80,7 +80,7 @@ class Server(object):
         self.optim_config = optim_config
 
         
-        self.model=Dynamic_collective(self.cfg) #set model here
+        self.model=Dynamic_education(self.cfg)#HiGCIN_volleyball(self.cfg)   #Dynamic_volleyball(self.cfg)   #set model here
 
         self.best=None
         self.best_epoch=None
@@ -179,6 +179,7 @@ class Server(object):
         num_sampled_clients = max(int(self.fraction * self.num_clients), 1)
         sampled_client_indices = sorted(np.random.choice(a=[i for i in range(self.num_clients)], size=num_sampled_clients, replace=False).tolist())
 
+        #sampled_client_indices=[0]
         return sampled_client_indices
     
     def update_selected_clients(self, sampled_client_indices):
@@ -186,6 +187,7 @@ class Server(object):
         # update selected clients
         message = f"[Round: {str(self._round).zfill(4)}] Start updating selected {len(sampled_client_indices)} clients...!"
         print(message); logging.info(message)
+        print("selected clients:",sampled_client_indices)
         del message; gc.collect()
 
         
@@ -244,8 +246,8 @@ class Server(object):
         print(message); logging.info(message)
         del message; gc.collect()
 
-        for idx in sampled_client_indices:
-            self.clients[idx].client_evaluate()
+        '''for idx in sampled_client_indices:
+            self.clients[idx].client_evaluate()'''
 
         message = f"[Round: {str(self._round).zfill(4)}] ...finished evaluation of {str(len(sampled_client_indices))} selected clients!"
         print(message); logging.info(message)
@@ -296,7 +298,7 @@ class Server(object):
 
         activities_meter=AverageMeter()
         loss_meter=AverageMeter()
-        activities_conf = ConfusionMeter(cfg.num_activities)
+        activities_conf = ConfusionMeter(self.cfg.num_activities)
         epoch_timer=Timer()
 
         test_loss, correct = 0, 0
@@ -316,7 +318,7 @@ class Server(object):
                 bboxes_num=batch_data[3].reshape(batch_size,num_frames)
 
                 # forward
-                activities_scores = self.model((batch_data[0], batch_data[1], batch_data[3],batch_data[4],batch_data[5]))['activities']
+                activities_scores = self.model((batch_data[0], batch_data[1], batch_data[3],batch_data[4]))['activities']
                 
                 activities_in=activities_in[:,0].reshape(batch_size,)
 

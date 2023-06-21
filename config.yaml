@@ -14,7 +14,7 @@ fed_config:
   K: 1
   R: 500
   E: 1
-  B: 2
+  B: 1
   criterion: torch.nn.CrossEntropyLoss
   optimizer: torch.optim.SGD
 ---

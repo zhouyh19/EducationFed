@@ -61,13 +61,22 @@ class Client(object):
         self.model.train()
         self.model.to(self.device)
 
+        activities_meter=AverageMeter()
+        loss_meter=AverageMeter()
+        activities_conf = ConfusionMeter(self.cfg.num_activities)
+        epoch_timer=Timer()
+
         print('lr:',self.cfg.train_learning_rate)
         optimizer=optim.Adam(filter(lambda p: p.requires_grad, self.model.parameters()), \
             lr=self.cfg.train_learning_rate,weight_decay=self.cfg.weight_decay)
 
+        begin_time=time.time()
+        report=len(self.dataloader)//5
+
         for e in range(self.local_epoch):
             print('epoch ',e)
-            for batch_data in self.dataloader:
+
+            for i,batch_data in enumerate(self.dataloader):
                 batch_data=[b.to(device=self.device) for b in batch_data]
                 batch_size=batch_data[0].shape[0]
                 num_frames=batch_data[0].shape[1]
@@ -77,7 +86,7 @@ class Client(object):
                 # actions_scores,activities_scores=model((batch_data[0],batch_data[1],batch_data[4]))
 
                 #print(batch_data[0].shape,batch_data[1].dtype,batch_data[3].dtype)
-                activities_scores = self.model((batch_data[0], batch_data[1], batch_data[3],batch_data[4],batch_data[5]))["activities"]
+                activities_scores = self.model((batch_data[0], batch_data[1], batch_data[3],batch_data[4]))["activities"]
                 activities_in = batch_data[2].reshape((batch_size,num_frames))
                 bboxes_num = batch_data[3].reshape(batch_size,num_frames)
                     
@@ -89,23 +98,55 @@ class Client(object):
                 activities_correct=torch.sum(torch.eq(activities_labels.int(),activities_in.int()).float())
                 #print(activities_correct)
                 activities_accuracy=activities_correct.item()/activities_scores.shape[0]
-                #activities_meter.update(activities_accuracy, activities_scores.shape[0])
-                #activities_conf.add(activities_labels, activities_in)
+                activities_meter.update(activities_accuracy, activities_scores.shape[0])
+                activities_conf.add(activities_labels, activities_in)
 
                 # Total loss
                 total_loss = activities_loss # + cfg.actions_loss_weight*actions_loss
-                #loss_meter.update(total_loss.item(), batch_size)
+                if torch.isnan(total_loss):
+                    print("loss nan",total_loss)
+                loss_meter.update(total_loss.item(), batch_size)
 
                 # Optim
                 optimizer.zero_grad()
                 total_loss.backward()
+
+                for m in self.model.state_dict():
+                    '''if self.model.state_dict()[m].grad is None:
+                        print("none",m)'''
+                    if self.model.state_dict()[m].grad !=None and True in torch.isnan(self.model.state_dict()[m].grad):
+                        print('grad nan')
                 optimizer.step()
 
-                if self.device == "cuda": torch.cuda.empty_cache()               
+                model_nan=False
+                for m in self.model.state_dict():
+                    '''if self.model.state_dict()[m].grad is None:
+                        print("none",m)'''
+                    if  True in torch.isnan(self.model.state_dict()[m]):
+                        model_nan=True 
+                if model_nan:
+                    print("model nan",i)
+
+                if i%report==100:
+                    print(f"batch {i}/{len(self.dataloader)} cur:{time.time()-begin_time}  est:{(time.time()-begin_time)*(len(self.dataloader)-i-1)/(i+1)} loss:{loss_meter.avg}")
+
+                if self.device == "cuda": torch.cuda.empty_cache()      
+
+        train_info={
+            'time':epoch_timer.timeit(),
+            'loss':loss_meter.avg,
+            'activities_acc':activities_meter.avg*100,
+            'activities_MPCA': MPCA(activities_conf.value()),
+        } #'actions_acc':actions_meter.avg*100
+
+        print(train_info)
+
         self.model.to("cpu")
 
     def client_evaluate(self):
         """Evaluate local model using local dataset (same as training set for convenience)."""
+
+
         self.model.eval()
         self.model.to(self.device)
 

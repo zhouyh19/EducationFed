@@ -63,6 +63,7 @@ def iou(box0, box1):
 def positional_embedding(pos1,pos2):
     '''
         pos:(x1,y1,x2,y2)
+        已弃用
     '''
     if torch.norm(pos1)==0 or torch.norm(pos2)==0:
         pos_vec=torch.zeros(9)
@@ -89,6 +90,7 @@ def positional_embedding(pos1,pos2):
     return pos_vec
 
 def temporal_embedding(pos1,pos2,dt):
+    #已弃用
     if torch.norm(pos1)==0 or torch.norm(pos2)==0:
         tmp_vec=torch.zeros(10)
     else:
@@ -113,19 +115,35 @@ def temporal_embedding(pos1,pos2,dt):
     return tmp_vec
 
 
-def get_pos_mat(pos,num_person):
-    mat=torch.zeros((num_person,num_person,9))
+def get_pos_mat(pos,max_person,num_person):
+    #已弃用
+    mat=torch.zeros((max_person,max_person,9))
     for i in range(num_person):
         for j in range(num_person):
             mat[i][j]=positional_embedding(pos[i],pos[j])
     return mat
 
 def get_tmp_mat(pos,num_timesteps):
+    #已弃用
     mat=torch.zeros((num_timesteps,num_timesteps,1,10))
     for i in range(num_timesteps):
         for j in range(num_timesteps):
             mat[i][j][0]=temporal_embedding(pos[i],pos[j],j-i)
     return mat
+
+
+def get_relative_pos(pos,num_person):
+    #将坐标转换为xywh形式，相对坐标已弃用
+    #relative_pos=torch.zeros((num_person,num_person,2))
+    x_center,y_center=(pos[:,0]+pos[:,2])/2,(pos[:,1]+pos[:,3])/2
+    w,h=pos[:,2]-pos[:,0],pos[:,3]-pos[:,1]
+    '''for i in range(num_person):
+        for j in range(num_person):
+            if w[i]!=0 and h[i]!=0:
+                relative_pos[i][j]=torch.tensor(((x_center[j]-x_center[i])/w[i],(y_center[j]-y_center[i])/h[i]) )'''
+    
+    xywh=torch.concat((x_center.reshape(-1,1),y_center.reshape(-1,1),w.reshape(-1,1),h.reshape(-1,1)),dim=-1)
+    return None,xywh
 
 '''
 def education_read_annotations(path,selected_files,img_path,num_frames,feature_size):
@@ -142,6 +160,25 @@ class EducationDataset(data.Dataset):
     """
     Characterize collective dataset for pytorch
     """
+    
+    def copy(self,other):
+        #用于在联邦学习中复制小数据集
+        self.images.extend(other.images)
+        self.activities.extend(other.activities)
+        self.bboxes=torch.concat((self.bboxes,other.bboxes),dim=0)  #self.bboxes.extend(other.bboxes)
+        self.bboxes_num.extend(other.bboxes_num)
+        print(self.pos_mat.shape)
+        self.pos_mat=torch.concat((self.pos_mat,other.pos_mat),dim=0)#self.pos_mat.extend(other.pos_mat)
+        self.tmp_mat=torch.concat((self.tmp_mat,other.tmp_mat),dim=0)#self.tmp_mat.extend(other.tmp_mat)
+
+        print(self.pos_mat.shape)
+
+        #self.num_frames=self.num_frames.extend(other.num_frames)
+        #self.image_size=self.image_size.extend(other.image_size)
+        #self.feature_size=self.feature_size.extend(other.feature_size)
+        #self.num_boxes=self.num_boxes.extend(other.num_boxes)
+
+
     def __init__(self,path,selected_files,img_path,num_frames,image_size,feature_size,num_boxes):
 
         OH, OW=feature_size
@@ -150,10 +187,12 @@ class EducationDataset(data.Dataset):
         activities=[]
         bboxes=[]
         bboxes_num=[]
-        pos_mat=[]
-        tmp_mat=[]
+        #pos_mat=[]
+        #tmp_mat=[]
+        xywh=[]
 
         videos=selected_files
+        #print(videos)
         type_anno={}
         for video in videos:
             video_path=path+'/'+video+'/'
@@ -162,6 +201,10 @@ class EducationDataset(data.Dataset):
             for seq in seqs:
                 seq_path=video_path+seq+'/'
                 frames=os.listdir(seq_path)
+
+                if not os.path.exists(seq_path+'annotations.txt'):
+                    continue
+
                 selected_frames=[]
                 person={}
                 for frame in frames:
@@ -220,20 +263,22 @@ class EducationDataset(data.Dataset):
                     bboxes_local=torch.from_numpy(bboxes_local).float()
 
                     images.append(seq_path+frame+'.png')
-                    activities.append(int(seq[-1])-1)
+                    activities.append(int(seq[-1]))
+                    if int(seq[-1])>=5:
+                        print("label error:",seq,int(seq[-1]))
                     bboxes.append(bboxes_local.unsqueeze(0))
-                    local_pos_mat.append(get_pos_mat(bboxes_local,num_boxes).unsqueeze(0))
+                    local_pos_mat.append(get_pos_mat(bboxes_local,num_boxes,bboxes_num[-1]).unsqueeze(0))
 
-                local_tmp_mat=[]
+                '''local_tmp_mat=[]
                 for person in range(bboxes_num[-1]):
                     tmp_pos=[bbox[0][person] for bbox in bboxes[-num_frames:]]
                     local_tmp_mat.append(get_tmp_mat(tmp_pos,num_frames))
                 while len(local_tmp_mat)<num_boxes:
-                    local_tmp_mat.append(torch.zeros((num_frames,num_frames,1,10)))
+                    local_tmp_mat.append(torch.zeros((num_frames,num_frames,1,10)))'''
 
-                pos_mat.append(torch.concat(local_pos_mat,0).unsqueeze(0))
+                #pos_mat.append(torch.concat(local_pos_mat,0).unsqueeze(0))
                 #print(pos_mat[-1].shape)
-                tmp_mat.append(torch.concat(local_tmp_mat,2).unsqueeze(0))
+                #tmp_mat.append(torch.concat(local_tmp_mat,2).unsqueeze(0))
 
             croped_len=len(images)-len(images)%num_frames
             images=images[:croped_len]
@@ -244,14 +289,19 @@ class EducationDataset(data.Dataset):
         
         #bboxes=np.array(bboxes,dtype=float)
         #bboxes=torch.from_numpy(bboxes).float()
-        print(len(bboxes),len(pos_mat),len(videos))
         bboxes=torch.concat(bboxes,0)
-        pos_mat=torch.concat(pos_mat,0)
-        tmp_mat=torch.concat(tmp_mat,0)
-        print("bboxes",bboxes.shape)
-        print("pos_mat",pos_mat.shape)
+        #pos_mat=torch.concat(pos_mat,0)
+        #tmp_mat=torch.concat(tmp_mat,0)
 
-        activity_cnt=[0,0,0,0,0]
+        for i in range(bboxes.shape[0]):
+            _,xywh_=get_relative_pos(bboxes[i],num_boxes)
+            xywh.append(xywh_.unsqueeze(0))
+        xywh=torch.concat(xywh,0)
+
+        print("bboxes",bboxes.shape,xywh.shape)
+        #print("pos_mat",pos_mat.shape)
+
+        activity_cnt=[0,0,0,0,0,0]
         for i in range(len(activities)):
             activity=activities[i]
             #print(activity)
@@ -262,8 +312,9 @@ class EducationDataset(data.Dataset):
         self.activities=activities
         self.bboxes=bboxes
         self.bboxes_num=bboxes_num
-        self.pos_mat=pos_mat
-        self.tmp_mat=tmp_mat
+        #self.pos_mat=pos_mat
+        #self.tmp_mat=tmp_mat
+        self.xywh=xywh
 
         self.num_frames=num_frames
         self.image_size=image_size
@@ -296,8 +347,9 @@ class EducationDataset(data.Dataset):
         activities=self.activities[index*self.num_frames:(index+1)*self.num_frames]
         bboxes=self.bboxes[index*self.num_frames:(index+1)*self.num_frames].reshape(-1,self.num_boxes,4)
         bboxes_num=self.bboxes_num[index*self.num_frames:(index+1)*self.num_frames]
-        pos_mat=self.pos_mat[index]
-        tmp_mat=self.tmp_mat[index]
+        #pos_mat=self.pos_mat[index]
+        #tmp_mat=self.tmp_mat[index]
+        xywh=self.xywh[index*self.num_frames:(index+1)*self.num_frames]
 
         loaded_images=[]
         for img in images:
@@ -335,7 +387,7 @@ class EducationDataset(data.Dataset):
         activities=torch.from_numpy(activities).long()
         bboxes_num=torch.from_numpy(bboxes_num).int()
         
-        return images, bboxes, activities, bboxes_num,pos_mat,tmp_mat
+        return images, bboxes, activities, bboxes_num,xywh
     
     
 
