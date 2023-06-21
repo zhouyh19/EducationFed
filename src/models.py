@@ -285,6 +285,7 @@ class SemPosBlock(nn.Module):
             vis_result,actor_weights=self.SpVis(person_features[i])
 
             #pos_result,agr_loss,offset=self.SpPos(person_features[i],xywh[i],OW,OH,actor_weights,avg_pos,num_person[i])
+            #有时会导致梯度爆炸，仍需检查
             
             result=vis_result
             #result=#torch.concat((pos_result,vis_result),dim=-1) 

@@ -62,18 +62,17 @@ class Config(object):
 
         # ResNet18
         
-        '''self.backbone = 'res18'
+        self.backbone = 'res18'
         #self.image_size = 480, 720
         self.out_size = 23, 40
         #self.out_size =15, 23
-        self.emb_features = 512'''
+        self.emb_features = 512
         #self.stage1_model_path = 'result/basemodel_CAD_res18.pth'
 
-        self.backbone = 'inv3'
+        '''self.backbone = 'inv3'
         self.stage1_model_path = 'basemodel_VD_inv3.pth'
         self.out_size = 87, 157
-        self.emb_features = 1056
-        
+        self.emb_features = 1056'''
 
         self.load_backbone_stage2=False
         self.load_stage2model=False
